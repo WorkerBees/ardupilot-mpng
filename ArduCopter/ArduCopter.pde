@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduCopter V3.0.1"
+#define THISFIRMWARE "ArduCopter-MPNG V3.0.1 R2"
 /*
  *  ArduCopter Version 3.0
  *  Creator:        Jason Short
@@ -67,6 +67,7 @@
 // AP_HAL
 #include <AP_HAL.h>
 #include <AP_HAL_AVR.h>
+#include <AP_HAL_MPNG.h>
 #include <AP_HAL_AVR_SITL.h>
 #include <AP_HAL_SMACCM.h>
 #include <AP_HAL_PX4.h>
@@ -103,7 +104,6 @@
 #include <memcheck.h>           // memory limit checker
 #include <SITL.h>               // software in the loop support
 #include <AP_Scheduler.h>       // main loop scheduler
-#include <AP_RCMapper.h>        // RC input mapping library
 
 // AP_HAL to Arduino compatibility layer
 #include "compat.h"
@@ -157,6 +157,8 @@ static void print_flight_mode(AP_HAL::BetterStream *port, uint8_t mode);
 static DataFlash_APM2 DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM1
 static DataFlash_APM1 DataFlash;
+#elif CONFIG_HAL_BOARD == HAL_BOARD_MPNG
+static DataFlash_MPNG DataFlash;
 #elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
 //static DataFlash_File DataFlash("/tmp/APMlogs");
 static DataFlash_SITL DataFlash;
@@ -197,8 +199,10 @@ static AP_Int8 *flight_modes = &g.flight_mode1;
 static AP_ADC_ADS7844 adc;
  #endif
 
- #if CONFIG_IMU_TYPE == CONFIG_IMU_MPU6000
+#if CONFIG_IMU_TYPE == CONFIG_IMU_MPU6000
 static AP_InertialSensor_MPU6000 ins;
+#elif CONFIG_IMU_TYPE == CONFIG_IMU_MPU6000_I2C
+static AP_InertialSensor_MPU6000_I2C ins;
 #elif CONFIG_IMU_TYPE == CONFIG_IMU_OILPAN
 static AP_InertialSensor_Oilpan ins(&adc);
 #elif CONFIG_IMU_TYPE == CONFIG_IMU_SITL
@@ -240,22 +244,22 @@ static AP_Compass_HMC5843 compass;
 AP_GPS_Auto     g_gps_driver(&g_gps);
 
  #elif GPS_PROTOCOL == GPS_PROTOCOL_NMEA
-AP_GPS_NMEA     g_gps_driver;
+AP_GPS_NMEA     g_gps_driver();
 
  #elif GPS_PROTOCOL == GPS_PROTOCOL_SIRF
-AP_GPS_SIRF     g_gps_driver;
+AP_GPS_SIRF     g_gps_driver();
 
  #elif GPS_PROTOCOL == GPS_PROTOCOL_UBLOX
-AP_GPS_UBLOX    g_gps_driver;
+AP_GPS_UBLOX    g_gps_driver();
 
  #elif GPS_PROTOCOL == GPS_PROTOCOL_MTK
-AP_GPS_MTK      g_gps_driver;
+AP_GPS_MTK      g_gps_driver();
 
  #elif GPS_PROTOCOL == GPS_PROTOCOL_MTK19
-AP_GPS_MTK19    g_gps_driver;
+AP_GPS_MTK19    g_gps_driver();
 
  #elif GPS_PROTOCOL == GPS_PROTOCOL_NONE
-AP_GPS_None     g_gps_driver;
+AP_GPS_None     g_gps_driver();
 
  #else
   #error Unrecognised GPS_PROTOCOL setting.
@@ -406,7 +410,6 @@ static int8_t control_mode = STABILIZE;
 // Used to maintain the state of the previous control switch position
 // This is set to -1 when we need to re-read the switch
 static uint8_t oldSwitchPosition;
-static RCMapper rcmap;
 
 // receiver RSSI
 static uint8_t receiver_rssi;
@@ -494,8 +497,8 @@ static int32_t original_wp_bearing;
 static int32_t home_bearing;
 // distance between plane and home in cm
 static int32_t home_distance;
-// distance between plane and next waypoint in cm.
-static uint32_t wp_distance;
+// distance between plane and next waypoint in cm.  is not static because AP_Camera uses it
+uint32_t wp_distance;
 // navigation mode - options include NAV_NONE, NAV_LOITER, NAV_CIRCLE, NAV_WP
 static uint8_t nav_mode;
 // Register containing the index of the current navigation command in the mission script
@@ -916,6 +919,9 @@ static void barometer_accumulate(void)
     barometer.accumulate();
 }
 
+// enable this to get console logging of scheduler performance
+#define SCHEDULER_DEBUG 1
+
 static void perf_update(void)
 {
     if (g.log_bitmask & MASK_LOG_PM)
@@ -1289,12 +1295,6 @@ static void super_slow_loop()
     // auto disarm checks
     auto_disarm_check();
 
-    // make it possible to change orientation at runtime - useful
-    // during initial config
-    if (!motors.armed()) {
-        ahrs.set_orientation();
-    }
-
     // agmatthews - USERHOOKS
 #ifdef USERHOOK_SUPERSLOWLOOP
     USERHOOK_SUPERSLOWLOOP
@@ -1372,12 +1372,6 @@ static void update_GPS(void)
                 ground_start_count = 10;
             }
         }
-
-#if CAMERA == ENABLED
-        if (camera.update_location(current_loc) == true) {
-            do_take_picture();
-        }
-#endif                
     }
 
     // check for loss of gps
@@ -1466,7 +1460,7 @@ void update_yaw_mode(void)
     case YAW_ACRO:
         // pilot controlled yaw using rate controller
         if(g.axis_enabled) {
-            get_yaw_rate_stabilized_bf(g.rc_4.control_in);
+            get_yaw_rate_stabilized_ef(g.rc_4.control_in);
         }else{
             get_acro_yaw(g.rc_4.control_in);
         }
@@ -1625,8 +1619,8 @@ void update_roll_pitch_mode(void)
 
 #if FRAME_CONFIG == HELI_FRAME
 		if(g.axis_enabled) {
-            get_roll_rate_stabilized_bf(g.rc_1.control_in);
-            get_pitch_rate_stabilized_bf(g.rc_2.control_in);
+            get_roll_rate_stabilized_ef(g.rc_1.control_in);
+            get_pitch_rate_stabilized_ef(g.rc_2.control_in);
         }else{
             // ACRO does not get SIMPLE mode ability
             if (motors.flybar_mode == 1) {
@@ -1639,8 +1633,8 @@ void update_roll_pitch_mode(void)
 		}
 #else  // !HELI_FRAME
 		if(g.axis_enabled) {
-            get_roll_rate_stabilized_bf(g.rc_1.control_in);
-            get_pitch_rate_stabilized_bf(g.rc_2.control_in);
+            get_roll_rate_stabilized_ef(g.rc_1.control_in);
+            get_pitch_rate_stabilized_ef(g.rc_2.control_in);
         }else{
             // ACRO does not get SIMPLE mode ability
             get_acro_roll(g.rc_1.control_in);
@@ -1655,11 +1649,9 @@ void update_roll_pitch_mode(void)
             update_simple_mode();
         }
 
-        // copy control_roll and pitch for reporting purposes
         control_roll            = g.rc_1.control_in;
         control_pitch           = g.rc_2.control_in;
 
-        // pass desired roll, pitch to stabilize attitude controllers
         get_stabilize_roll(control_roll);
         get_stabilize_pitch(control_pitch);
 
@@ -1672,9 +1664,9 @@ void update_roll_pitch_mode(void)
         get_stabilize_roll(nav_roll);
         get_stabilize_pitch(nav_pitch);
 
-        // user input, although ignored is put into control_roll and pitch for reporting purposes
-        control_roll = g.rc_1.control_in;
-        control_pitch = g.rc_2.control_in;
+        // copy control_roll and pitch for reporting purposes
+        control_roll = nav_roll;
+        control_pitch = nav_pitch;
         break;
 
     case ROLL_PITCH_STABLE_OF:
@@ -1683,7 +1675,6 @@ void update_roll_pitch_mode(void)
             update_simple_mode();
         }
 
-        // copy pilot input to control_roll and pitch for reporting purposes
         control_roll            = g.rc_1.control_in;
         control_pitch           = g.rc_2.control_in;
 
@@ -1703,7 +1694,7 @@ void update_roll_pitch_mode(void)
         if(ap.simple_mode && ap_system.new_radio_frame) {
             update_simple_mode();
         }
-        // copy user input for reporting purposes
+        // copy user input for logging purposes
         control_roll            = g.rc_1.control_in;
         control_pitch           = g.rc_2.control_in;
 
@@ -2018,7 +2009,7 @@ static void update_altitude()
 {
 #if HIL_MODE == HIL_MODE_ATTITUDE
     // we are in the SIM, fake out the baro and Sonar
-    baro_alt                = g_gps->altitude_cm - gps_base_alt;
+    baro_alt                = g_gps->altitude - gps_base_alt;
 
     if(g.sonar_enabled) {
         sonar_alt           = baro_alt;
@@ -2043,30 +2034,41 @@ static void tuning(){
 
     switch(g.radio_tuning) {
 
-    // Roll, Pitch tuning
-    case CH6_STABILIZE_ROLL_PITCH_KP:
-        g.pi_stabilize_roll.kP(tuning_value);
-        g.pi_stabilize_pitch.kP(tuning_value);
-        break;
-
-    case CH6_RATE_ROLL_PITCH_KP:
-        g.pid_rate_roll.kP(tuning_value);
-        g.pid_rate_pitch.kP(tuning_value);
-        break;
-
-    case CH6_RATE_ROLL_PITCH_KI:
-        g.pid_rate_roll.kI(tuning_value);
-        g.pid_rate_pitch.kI(tuning_value);
-        break;
-
-    case CH6_RATE_ROLL_PITCH_KD:
+    case CH6_RATE_KD:
         g.pid_rate_roll.kD(tuning_value);
         g.pid_rate_pitch.kD(tuning_value);
         break;
 
-    // Yaw tuning
-    case CH6_STABILIZE_YAW_KP:
+    case CH6_STABILIZE_KP:
+        g.pi_stabilize_roll.kP(tuning_value);
+        g.pi_stabilize_pitch.kP(tuning_value);
+        break;
+
+    case CH6_STABILIZE_KI:
+        g.pi_stabilize_roll.kI(tuning_value);
+        g.pi_stabilize_pitch.kI(tuning_value);
+        break;
+
+    case CH6_ACRO_KP:
+        g.acro_p = tuning_value;
+        break;
+
+    case CH6_RATE_KP:
+        g.pid_rate_roll.kP(tuning_value);
+        g.pid_rate_pitch.kP(tuning_value);
+        break;
+
+    case CH6_RATE_KI:
+        g.pid_rate_roll.kI(tuning_value);
+        g.pid_rate_pitch.kI(tuning_value);
+        break;
+
+    case CH6_YAW_KP:
         g.pi_stabilize_yaw.kP(tuning_value);
+        break;
+
+    case CH6_YAW_KI:
+        g.pi_stabilize_yaw.kI(tuning_value);
         break;
 
     case CH6_YAW_RATE_KP:
@@ -2077,35 +2079,36 @@ static void tuning(){
         g.pid_rate_yaw.kD(tuning_value);
         break;
 
-    // Altitude and throttle tuning
-    case CH6_ALTITUDE_HOLD_KP:
-        g.pi_alt_hold.kP(tuning_value);
+    case CH6_THROTTLE_KP:
+        g.pid_throttle.kP(tuning_value);
         break;
 
-    case CH6_THROTTLE_RATE_KP:
-        g.pid_throttle_rate.kP(tuning_value);
+    case CH6_THROTTLE_KI:
+        g.pid_throttle.kI(tuning_value);
         break;
 
-    case CH6_THROTTLE_RATE_KD:
-        g.pid_throttle_rate.kD(tuning_value);
+    case CH6_THROTTLE_KD:
+        g.pid_throttle.kD(tuning_value);
         break;
 
-    case CH6_THROTTLE_ACCEL_KP:
-        g.pid_throttle_accel.kP(tuning_value);
+    case CH6_RELAY:
+        if (g.rc_6.control_in > 525) relay.on();
+        if (g.rc_6.control_in < 475) relay.off();
         break;
 
-    case CH6_THROTTLE_ACCEL_KI:
-        g.pid_throttle_accel.kI(tuning_value);
+    case CH6_WP_SPEED:
+        // set waypoint navigation horizontal speed to 0 ~ 1000 cm/s
+        wp_nav.set_horizontal_velocity(g.rc_6.control_in);
         break;
 
-    case CH6_THROTTLE_ACCEL_KD:
-        g.pid_throttle_accel.kD(tuning_value);
-        break;
-
-    // Loiter and navigation tuning
-    case CH6_LOITER_POSITION_KP:
+    case CH6_LOITER_KP:
         g.pi_loiter_lat.kP(tuning_value);
         g.pi_loiter_lon.kP(tuning_value);
+        break;
+
+    case CH6_LOITER_KI:
+        g.pi_loiter_lat.kI(tuning_value);
+        g.pi_loiter_lon.kI(tuning_value);
         break;
 
     case CH6_LOITER_RATE_KP:
@@ -2123,26 +2126,15 @@ static void tuning(){
         g.pid_loiter_rate_lat.kD(tuning_value);
         break;
 
-    case CH6_WP_SPEED:
-        // set waypoint navigation horizontal speed to 0 ~ 1000 cm/s
-        wp_nav.set_horizontal_velocity(g.rc_6.control_in);
-        break;
-
-    // Acro and other tuning
-    case CH6_ACRO_KP:
-        g.acro_p = tuning_value;
-        break;
-
-    case CH6_RELAY:
-        if (g.rc_6.control_in > 525) relay.on();
-        if (g.rc_6.control_in < 475) relay.off();
-        break;
-
 #if FRAME_CONFIG == HELI_FRAME
     case CH6_HELI_EXTERNAL_GYRO:
         motors.ext_gyro_gain = tuning_value;
         break;
 #endif
+
+    case CH6_THR_HOLD_KP:
+        g.pi_alt_hold.kP(tuning_value);
+        break;
 
     case CH6_OPTFLOW_KP:
         g.pid_optflow_roll.kP(tuning_value);
@@ -2175,6 +2167,18 @@ static void tuning(){
         inertial_nav.set_time_constant_z(tuning_value);
         break;
 
+    case CH6_THR_ACCEL_KP:
+        g.pid_throttle_accel.kP(tuning_value);
+        break;
+
+    case CH6_THR_ACCEL_KI:
+        g.pid_throttle_accel.kI(tuning_value);
+        break;
+
+    case CH6_THR_ACCEL_KD:
+        g.pid_throttle_accel.kD(tuning_value);
+        break;
+
     case CH6_DECLINATION:
         // set declination to +-20degrees
         compass.set_declination(ToRad((2.0f * g.rc_6.control_in - g.radio_tuning_high)/100.0f), false);     // 2nd parameter is false because we do not want to save to eeprom because this would have a performance impact
@@ -2183,6 +2187,7 @@ static void tuning(){
     case CH6_CIRCLE_RATE:
         // set circle rate
         g.circle_rate.set(g.rc_6.control_in/25-20);     // allow approximately 45 degree turn rate in either direction
+        //cliSerial->printf_P(PSTR("\nRate:%4.2f"),(float)g.circle_rate);
         break;
     }
 }
