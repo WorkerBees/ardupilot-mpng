@@ -230,6 +230,8 @@ AP_GPS_HIL      g_gps_driver;
 AP_InertialSensor_MPU6000 ins;
 #elif CONFIG_INS_TYPE == CONFIG_INS_MPU6000_I2C
 AP_InertialSensor_MPU6000_I2C ins;
+#elif CONFIG_IMU_TYPE == CONFIG_IMU_ITG3200
+static AP_InertialSensor_ITG3200 ins(MPNG_BOARD_TYPE);
 #elif CONFIG_INS_TYPE == CONFIG_INS_PX4
 AP_InertialSensor_PX4 ins;
 #elif CONFIG_INS_TYPE == CONFIG_INS_STUB
@@ -269,7 +271,7 @@ static AP_SpdHgtControl *SpdHgt_Controller = &TECS_controller;
 // Analog Inputs
 ////////////////////////////////////////////////////////////////////////////////
 
-// a pin for reading the receiver RSSI voltage. 
+// a pin for reading the receiver RSSI voltage.
 static AP_HAL::AnalogSource *rssi_analog_source;
 
 static AP_HAL::AnalogSource *vcc_pin;
@@ -530,7 +532,7 @@ static struct {
     // previous target bearing, used to update sum_cd
     int32_t old_target_bearing_cd;
 
-    // Total desired rotation in a loiter.  Used for Loiter Turns commands. 
+    // Total desired rotation in a loiter.  Used for Loiter Turns commands.
     int32_t total_cd;
 
     // total angle completed in the loiter so far
@@ -548,7 +550,7 @@ static struct {
 
 
 // event control state
-enum event_type { 
+enum event_type {
     EVENT_TYPE_RELAY=0,
     EVENT_TYPE_SERVO=1
 };
@@ -728,7 +730,7 @@ void setup() {
 
     batt_volt_pin = hal.analogin->channel(g.battery_volt_pin);
     batt_curr_pin = hal.analogin->channel(g.battery_curr_pin);
-   
+
     init_ardupilot();
 
     // initialise the main loop scheduler
@@ -809,7 +811,7 @@ static void update_speed_height(void)
 {
     if ((g.alt_control_algorithm == ALT_CONTROL_TECS ||
          g.alt_control_algorithm == ALT_CONTROL_DEFAULT) &&
-        auto_throttle_mode && !throttle_suppressed) 
+        auto_throttle_mode && !throttle_suppressed)
     {
 	    // Call TECS 50Hz update
         SpdHgt_Controller->update_50hz(relative_altitude());
@@ -858,7 +860,7 @@ static void compass_accumulate(void)
 {
     if (g.compass_enabled) {
         compass.accumulate();
-    }    
+    }
 }
 
 /*
@@ -876,10 +878,10 @@ static void update_logging(void)
 {
     if ((g.log_bitmask & MASK_LOG_ATTITUDE_MED) && !(g.log_bitmask & MASK_LOG_ATTITUDE_FAST))
         Log_Write_Attitude();
-    
+
     if (g.log_bitmask & MASK_LOG_CTUN)
         Log_Write_Control_Tuning();
-    
+
     if (g.log_bitmask & MASK_LOG_NTUN)
         Log_Write_Nav_Tuning();
 }
@@ -948,7 +950,7 @@ static void one_second_loop()
         resetPerfData();
     }
 
-    if (counter >= 60) {                                               
+    if (counter >= 60) {
         if(g.compass_enabled) {
             compass.save_offsets();
         }
@@ -1020,7 +1022,7 @@ static void update_GPS(void)
         if (camera.update_location(current_loc) == true) {
             do_take_picture();
         }
-#endif        
+#endif
     }
 
     calc_gndspeed_undershoot();
@@ -1116,7 +1118,7 @@ static void update_flight_mode(void)
             if (ahrs.roll_sensor >= g.roll_limit_cd) {
                 nav_roll_cd = g.roll_limit_cd;
             } else if (ahrs.roll_sensor <= -g.roll_limit_cd) {
-                nav_roll_cd = -g.roll_limit_cd;                
+                nav_roll_cd = -g.roll_limit_cd;
             } else {
                 training_manual_roll = true;
                 nav_roll_cd = 0;
@@ -1183,10 +1185,10 @@ static void update_flight_mode(void)
               any aileron or rudder input
              */
             if ((channel_roll->control_in != 0 ||
-                 channel_rudder->control_in != 0)) {                
+                 channel_rudder->control_in != 0)) {
                 cruise_state.locked_heading = false;
                 cruise_state.lock_timer_ms = 0;
-            }                 
+            }
 
             if (!cruise_state.locked_heading) {
                 nav_roll_cd = channel_roll->norm_input() * g.roll_limit_cd;
@@ -1239,7 +1241,7 @@ static void update_navigation()
     case AUTO:
         verify_commands();
         break;
-            
+
     case LOITER:
     case RTL:
     case GUIDED:
@@ -1287,9 +1289,9 @@ static void update_alt()
     // Update the speed & height controller states
     if ((g.alt_control_algorithm == ALT_CONTROL_TECS || g.alt_control_algorithm == ALT_CONTROL_DEFAULT) &&
         auto_throttle_mode && !throttle_suppressed) {
-        SpdHgt_Controller->update_pitch_throttle(target_altitude_cm - home.alt + (int32_t(g.alt_offset)*100), 
+        SpdHgt_Controller->update_pitch_throttle(target_altitude_cm - home.alt + (int32_t(g.alt_offset)*100),
                                                  target_airspeed_cm,
-                                                 (control_mode==AUTO && takeoff_complete == false), 
+                                                 (control_mode==AUTO && takeoff_complete == false),
                                                  takeoff_pitch_cd,
                                                  throttle_nudge,
                                                  relative_altitude());
