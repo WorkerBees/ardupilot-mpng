@@ -23,7 +23,10 @@ static int8_t   test_xbee(uint8_t argc,                 const Menu::arg *argv);
 static int8_t   test_eedump(uint8_t argc,               const Menu::arg *argv);
 static int8_t   test_rawgps(uint8_t argc,                       const Menu::arg *argv);
 static int8_t   test_modeswitch(uint8_t argc,           const Menu::arg *argv);
+#if LOGGING_ENABLED == ENABLED
 static int8_t   test_logging(uint8_t argc,              const Menu::arg *argv);
+#endif
+
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
 static int8_t   test_shell(uint8_t argc,              const Menu::arg *argv);
 #endif
@@ -61,7 +64,9 @@ static const struct Menu::command test_menu_commands[] PROGMEM = {
     {"ins",                 test_ins},
     {"compass",             test_mag},
 #endif
+#if LOGGING_ENABLED == ENABLED
     {"logging",             test_logging},
+#endif
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
     {"shell", 				test_shell},
 #endif
@@ -391,12 +396,14 @@ test_modeswitch(uint8_t argc, const Menu::arg *argv)
 /*
  *  test the dataflash is working
  */
+#if LOGGING_ENABLED == ENABLED
 static int8_t
 test_logging(uint8_t argc, const Menu::arg *argv)
 {
     DataFlash.ShowDeviceInfo(cliSerial);
     return 0;
 }
+#endif
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4
 /*
