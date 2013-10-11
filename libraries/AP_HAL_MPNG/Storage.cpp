@@ -34,7 +34,7 @@ void AVREEPROMStorage::write_dword(uint16_t loc, uint32_t value) {
     eeprom_write_dword((uint32_t*)loc,value);
 }
 
-void AVREEPROMStorage::write_block(uint16_t dst, void *src, size_t n) {
+void AVREEPROMStorage::write_block(uint16_t dst, const void *src, size_t n) {
     eeprom_write_block(src,(void*)dst,n);
 }
 
