@@ -34,6 +34,6 @@ Serial ports:
 * Serial2 (RX2,TX2) - GPS
 * Serial3 (RX3,TX3) - OSD (Minim OSD) or Telemetry (3DR, Xbee, Bluetooth)
 
-## Motor mapping and RC Input Configuration
+## Motor, Servo and RC Input Configuration
 
-Please visit: https://github.com/smurfy/ardupilot-mpng/wiki
+Please visit: https://github.com/smurfy/ardupilot-mpng/wiki/ardupilot-mpng-fork-for-arduplane
