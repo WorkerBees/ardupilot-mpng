@@ -165,7 +165,7 @@ struct PACKED log_Performance {
     LOG_PACKET_HEADER;
     uint32_t loop_time;
     uint16_t main_loop_count;
-    int16_t  g_dt_max;
+    int32_t  g_dt_max;
     uint8_t  renorm_count;
     uint8_t  renorm_blowup;
     uint8_t  gps_fix_count;
@@ -228,6 +228,7 @@ static void Log_Write_Cmd(uint8_t num, const struct Location *wp)
 struct PACKED log_Camera {
     LOG_PACKET_HEADER;
     uint32_t gps_time;
+    uint16_t gps_week;
     int32_t  latitude;
     int32_t  longitude;
     int16_t  roll;
@@ -241,7 +242,8 @@ static void Log_Write_Camera()
 #if CAMERA == ENABLED
     struct log_Camera pkt = {
         LOG_PACKET_HEADER_INIT(LOG_CAMERA_MSG),
-        gps_time    : g_gps->time,
+        gps_time    : g_gps->time_week_ms,
+        gps_week    : g_gps->time_week,
         latitude    : current_loc.lat,
         longitude   : current_loc.lng,
         roll        : (int16_t)ahrs.roll_sensor,
@@ -454,11 +456,11 @@ static const struct LogStructure log_structure[] PROGMEM = {
     { LOG_ATTITUDE_MSG, sizeof(log_Attitude),       
       "ATT", "ccC",        "Roll,Pitch,Yaw" },
     { LOG_PERFORMANCE_MSG, sizeof(log_Performance), 
-      "PM",  "IHhBBBhhhhB", "LTime,MLC,gDt,RNCnt,RNBl,GPScnt,GDx,GDy,GDz,PMT,I2CErr" },
+      "PM",  "IHIBBBhhhhB", "LTime,MLC,gDt,RNCnt,RNBl,GPScnt,GDx,GDy,GDz,PMT,I2CErr" },
     { LOG_CMD_MSG, sizeof(log_Cmd),                 
       "CMD", "BBBBBeLL",   "CTot,CNum,CId,COpt,Prm1,Alt,Lat,Lng" },
     { LOG_CAMERA_MSG, sizeof(log_Camera),                 
-      "CAM", "ILLccC",   "GPSTime,Lat,Lng,Roll,Pitch,Yaw" },
+      "CAM", "IHLLeccC",   "GPSTime,GPSWeek,Lat,Lng,Alt,Roll,Pitch,Yaw" },
     { LOG_STARTUP_MSG, sizeof(log_Startup),         
       "STRT", "BB",         "SType,CTot" },
     { LOG_CTUN_MSG, sizeof(log_Control_Tuning),     

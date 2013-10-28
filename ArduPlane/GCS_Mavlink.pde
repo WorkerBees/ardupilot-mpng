@@ -293,6 +293,14 @@ static void NOINLINE send_gps_raw(mavlink_channel_t chan)
         g_gps->num_sats);
 }
 
+static void NOINLINE send_system_time(mavlink_channel_t chan)
+{
+    mavlink_msg_system_time_send(
+        chan,
+        g_gps->time_epoch_usec(),
+        hal.scheduler->millis());
+}
+
 #if HIL_MODE != HIL_MODE_DISABLED
 static void NOINLINE send_servo_out(mavlink_channel_t chan)
 {
@@ -572,6 +580,11 @@ static bool mavlink_try_send_message(mavlink_channel_t chan, enum ap_message id,
     case MSG_GPS_RAW:
         CHECK_PAYLOAD_SIZE(GPS_RAW_INT);
         send_gps_raw(chan);
+        break;
+
+    case MSG_SYSTEM_TIME:
+        CHECK_PAYLOAD_SIZE(SYSTEM_TIME);
+        send_system_time(chan);
         break;
 
     case MSG_SERVO_OUT:
@@ -934,7 +947,8 @@ bool GCS_MAVLINK::stream_trigger(enum streams stream_num)
 
     // send at a much lower rate while handling waypoints and
     // parameter sends
-    if (waypoint_receiving || _queued_parameter != NULL) {
+    if ((stream_num != STREAM_PARAMS) && 
+        (waypoint_receiving || _queued_parameter != NULL)) {
         rate *= 0.25;
     }
 
@@ -1002,7 +1016,7 @@ GCS_MAVLINK::data_stream_send(void)
         send_message(MSG_EXTENDED_STATUS1);
         send_message(MSG_EXTENDED_STATUS2);
         send_message(MSG_CURRENT_WAYPOINT);
-        send_message(MSG_GPS_RAW);            // TODO - remove this message after location message is working
+        send_message(MSG_GPS_RAW);
         send_message(MSG_NAV_CONTROLLER_OUTPUT);
         send_message(MSG_FENCE_STATUS);
     }
@@ -1046,6 +1060,7 @@ GCS_MAVLINK::data_stream_send(void)
         send_message(MSG_AHRS);
         send_message(MSG_HWSTATUS);
         send_message(MSG_WIND);
+        send_message(MSG_SYSTEM_TIME);
     }
 }
 
@@ -2287,3 +2302,12 @@ static void gcs_send_airspeed_calibration(const Vector3f &vg)
         }
     }
 }
+
+/**
+   retry any deferred messages
+ */
+static void gcs_retry_deferred(void)
+{
+    gcs_send_message(MSG_RETRY_DEFERRED);
+}
+

@@ -199,8 +199,6 @@
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM1
  # define LED_ON           HIGH
  # define LED_OFF          LOW
- # define BATTERY_VOLT_PIN      0      // Battery voltage on A0
- # define BATTERY_CURR_PIN      1      // Battery current on A1
 #elif CONFIG_HAL_BOARD == HAL_BOARD_MPNG
  # define LED_ON           HIGH
  # define LED_OFF          LOW
@@ -209,26 +207,16 @@
 #elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
  # define LED_ON           LOW
  # define LED_OFF          HIGH
- # define BATTERY_VOLT_PIN      1      // Battery voltage on A1
- # define BATTERY_CURR_PIN      2      // Battery current on A2
 #elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
  # define LED_ON           LOW
  # define LED_OFF          HIGH
- # define BATTERY_VOLT_PIN 1      // Battery voltage on A1
- # define BATTERY_CURR_PIN 2      // Battery current on A2
 #elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
  # define LED_ON           LOW
  # define LED_OFF          HIGH
- # define BATTERY_VOLT_PIN -1
- # define BATTERY_CURR_PIN -1
 #elif CONFIG_HAL_BOARD == HAL_BOARD_FLYMAPLE
- # define BATTERY_VOLT_PIN      20
- # define BATTERY_CURR_PIN      19
  # define LED_ON           LOW
  # define LED_OFF          HIGH
 #elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
- # define BATTERY_VOLT_PIN      -1
- # define BATTERY_CURR_PIN      -1
  # define LED_ON           LOW
  # define LED_OFF          HIGH
 #endif
@@ -433,6 +421,11 @@
 #define FS_GCS_ENABLED_ALWAYS_RTL           1
 #define FS_GCS_ENABLED_CONTINUE_MISSION     2
 
+// pre-arm check max velocity
+#ifndef PREARM_MAX_VELOCITY_CMS
+ # define PREARM_MAX_VELOCITY_CMS           50.0f   // vehicle must be travelling under 50cm/s before arming
+#endif
+
 //////////////////////////////////////////////////////////////////////////////
 //  MAGNETOMETER
 #ifndef MAGNETOMETER
@@ -453,7 +446,7 @@
 //////////////////////////////////////////////////////////////////////////////
 //  OPTICAL_FLOW
 #ifndef OPTFLOW                         // sets global enabled/disabled flag for optflow (as seen in CLI)
- # define OPTFLOW                       DISABLED
+ # define OPTFLOW                       ENABLED
 #endif
 #ifndef OPTFLOW_ORIENTATION
  # define OPTFLOW_ORIENTATION    AP_OPTICALFLOW_ADNS3080_PINS_FORWARD
@@ -551,20 +544,6 @@
 #ifndef LAND_DETECTOR_TRIGGER
  # define LAND_DETECTOR_TRIGGER 50    // number of 50hz iterations with near zero climb rate and low throttle that triggers landing complete.
 #endif
-
-//////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////
-// STARTUP BEHAVIOUR
-//////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////
-// GROUND_START_DELAY
-//
-#ifndef GROUND_START_DELAY
- # define GROUND_START_DELAY             3
-#endif
-
 
 //////////////////////////////////////////////////////////////////////////////
 // CAMERA TRIGGER AND CONTROL

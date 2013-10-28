@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#define THISFIRMWARE "ArduPlane V2.75beta3 MPNG-R1b"
+#define THISFIRMWARE "ArduPlane V2.75"
 /*
    Lead developer: Andrew Tridgell
  
@@ -699,34 +699,37 @@ AP_Mount camera_mount2(&current_loc, g_gps, ahrs, 1);
 ////////////////////////////////////////////////////////////////////////////////
 
 /*
-  scheduler table - all regular tasks apart from the fast_loop()
-  should be listed here, along with how often they should be called
-  (in 20ms units) and the maximum time they are expected to take (in
-  microseconds)
+  scheduler table - all regular tasks are listed here, along with how
+  often they should be called (in 20ms units) and the maximum time
+  they are expected to take (in microseconds)
  */
 static const AP_Scheduler::Task scheduler_tasks[] PROGMEM = {
-    { update_speed_height,    1,    900 }, // 0
-    { update_flight_mode,     1,   1000 },
-    { stabilize,              1,   3200 },
-    { set_servos,             1,   1100 },
+    { read_radio,             1,    700 }, // 0
+    { check_short_failsafe,   1,   1000 },
+    { ahrs_update,            1,   6400 },
+    { update_speed_height,    1,   1600 },
+    { update_flight_mode,     1,   1400 },
+    { stabilize,              1,   3500 },
+    { set_servos,             1,   1600 },
     { read_control_switch,    7,   1000 },
-    { update_GPS,             5,   4000 },
-    { navigate,               5,   4800 },
-    { update_compass,         5,   1500 },
-    { read_airspeed,          5,   1500 },
+    { gcs_retry_deferred,     1,   1000 },
+    { update_GPS,             5,   3700 },
+    { navigate,               5,   3000 }, // 10
+    { update_compass,         5,   1200 },
+    { read_airspeed,          5,   1200 },
     { update_alt,             5,   3400 },
-    { calc_altitude_error,    5,   1000 }, // 10
-    { update_commands,        5,   7000 },
+    { calc_altitude_error,    5,   1000 },
+    { update_commands,        5,   5000 },
     { obc_fs_check,           5,   1000 },
     { gcs_update,             1,   1700 },
     { gcs_data_stream_send,   1,   3000 },
     { update_mount,           1,   1500 },
-    { update_events,		 15,   1500 },
-    { check_usb_mux,          5,    200 },
+    { update_events,		 15,   1500 }, // 20
+    { check_usb_mux,          5,    300 },
     { read_battery,           5,   1000 },
     { compass_accumulate,     1,   1500 },
-    { barometer_accumulate,   1,    900 }, // 20
-    { update_notify,          1,    100 },
+    { barometer_accumulate,   1,    900 },
+    { update_notify,          1,    300 },
     { one_second_loop,       50,   3900 },
     { check_long_failsafe,   15,   1000 },
     { airspeed_ratio_update, 50,   1000 },
@@ -778,11 +781,10 @@ void loop()
     G_Dt                = delta_us_fast_loop * 1.0e-6f;
     fast_loopTimer_us   = timer;
 
-    mainLoop_count++;
+    if (delta_us_fast_loop > G_Dt_max)
+        G_Dt_max = delta_us_fast_loop;
 
-    // Execute the fast loop
-    // ---------------------
-    fast_loop();
+    mainLoop_count++;
 
     // tell the scheduler one tick has passed
     scheduler.tick();
@@ -799,26 +801,9 @@ void loop()
     scheduler.run(remaining);
 }
 
-// Main loop 50Hz
-static void fast_loop()
+// update AHRS system
+static void ahrs_update()
 {
-    // This is the fast loop - we want it to execute at 50Hz if possible
-    // -----------------------------------------------------------------
-    if (delta_us_fast_loop > G_Dt_max)
-        G_Dt_max = delta_us_fast_loop;
-
-    // Read radio
-    // ----------
-    read_radio();
-
-    // try to send any deferred messages if the serial port now has
-    // some space available
-    gcs_send_message(MSG_RETRY_DEFERRED);
-
-    // check for loss of control signal failsafe condition
-    // ------------------------------------
-    check_short_failsafe();
-
 #if HIL_MODE != HIL_MODE_DISABLED
     // update hil before AHRS update
     gcs_update();
@@ -972,7 +957,11 @@ static void one_second_loop()
     static uint8_t counter;
     counter++;
 
-    if (counter == 20) {
+    if (counter % 10 == 0) {
+        if (scheduler.debug() != 0) {
+            hal.console->printf_P(PSTR("G_Dt_max=%lu\n"), (unsigned long)G_Dt_max);
+        }
+        G_Dt_max = 0;
         if (g.log_bitmask & MASK_LOG_PM)
             Log_Write_Performance();
         resetPerfData();
@@ -1048,6 +1037,9 @@ static void update_GPS(void)
 
             } else {
                 init_home();
+
+                // set system clock for log timestamps
+                hal.util->set_system_clock(g_gps->time_epoch_usec());
 
                 if (g.compass_enabled) {
                     // Set compass declination automatically
