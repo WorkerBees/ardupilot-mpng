@@ -21,7 +21,7 @@
  */
  
  // GPS port speed (Serial2) 38400 by default
-#define SERIAL2_BAUD 38400
+//#define SERIAL2_BAUD 38400
 
 // GPS driver selection
 //#define GPS_PROTOCOL GPS_PROTOCOL_NONE
