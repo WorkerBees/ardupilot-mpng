@@ -1,5 +1,9 @@
 # ardupilot-mpng fork for arduplane
 
+This branch will not longer maintained, please use the newest version.
+If you think this branch should be maintained regardless it's outdated version,
+please create an issue with the reasons.
+
 All credit for the MPNG HAL goes to SirAlex
 
 This fork provides the latest stable version of ArduPlane with SirAlex's HAL patches to support additional boards.
