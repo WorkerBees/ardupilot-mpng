@@ -1,5 +1,8 @@
 # ardupilot-mpng fork for arduplane
 
+This version has a serious bug with the new airspeed autocal feature, please use a newer version of ArduPlane.
+This branch will not longer be maintained.
+
 All credit for the MPNG HAL goes to SirAlex
 
 This fork provides the latest stable version of ArduPlane with SirAlex's HAL patches to support additional boards.
