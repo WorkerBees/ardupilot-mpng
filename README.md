@@ -24,16 +24,5 @@ Sample:
   ArduCopter 3.0.1 code also contains ArduPlane code but the code is older than the ArduPlane code
   released with ArduPlane 2.74b.
 
-## How to compile MegaPirateNG
-Follow instructions at: http://www.megapirateng.com/compile-mpng-sources/
-
-## Arduino board pin mapping
-Serial ports:
-* Serial0 (RX0,TX0) - USB, OSD (Minim OSD) or Telemetry (3DR, Xbee, Bluetooth)
-* Serial1 (RX1,TX1) - Currently not supported
-* Serial2 (RX2,TX2) - GPS
-* Serial3 (RX3,TX3) - OSD (Minim OSD) or Telemetry (3DR, Xbee, Bluetooth)
-
-## Motor, Servo and RC Input Configuration
-
-Please visit: https://github.com/smurfy/ardupilot-mpng/wiki/ardupilot-mpng-fork-for-arduplane
+## How to compile and configure MegaPirateNG
+Follow instructions at: http://docs.megapirateng.com
