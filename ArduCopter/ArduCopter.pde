@@ -1,6 +1,7 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
-
-#define THISFIRMWARE "ArduCopter V3.1-rc4 MPNG-R1b"
+#ifndef THISFIRMWARE
+#  define THISFIRMWARE "ArduCopter-MPNG V3.0.1 R3b"
+#endif
 /*
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
