@@ -104,8 +104,8 @@ static void init_ardupilot()
 #endif
 
     cliSerial->printf_P(PSTR("\n\nInit " THISFIRMWARE
-                         "\n\nFree RAM: %u\n"),
-                    memcheck_available_memory());
+                             "\n\nFree RAM: %u\nBoard Type: %d\n" ),
+                        (unsigned) memcheck_available_memory(), MPNG_BOARD_TYPE); 
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM2
     /*
