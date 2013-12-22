@@ -93,6 +93,11 @@ static void init_ardupilot()
 
     set_control_channels();
 
+    // Ensure all data (firmware version) printed out
+    while (hal.uartA->tx_pending()) {
+       hal.scheduler->delay(1);
+    }
+
     // reset the uartA baud rate after parameter load
     hal.uartA->begin(map_baudrate(g.serial0_baud, SERIAL0_BAUD));
 
