@@ -23,7 +23,7 @@ MODULES		+= drivers/boards/px4fmu-v2
 MODULES		+= drivers/rgbled
 MODULES		+= drivers/lsm303d
 MODULES		+= drivers/l3gd20
-#MODULES		+= drivers/mpu6000
+MODULES		+= drivers/mpu6000
 MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
 MODULES		+= drivers/mb12xx
@@ -42,7 +42,6 @@ MODULES		+= drivers/meas_airspeed
 #
 # System commands
 #
-MODULES		+= systemcmds/ramtron
 MODULES		+= systemcmds/bl_update
 MODULES		+= systemcmds/boardinfo
 MODULES		+= systemcmds/mixer
@@ -52,8 +51,8 @@ MODULES		+= systemcmds/reboot
 MODULES		+= systemcmds/top
 MODULES		+= systemcmds/tests
 MODULES		+= systemcmds/nshterm
-#MODULES		+= systemcmds/eeprom
-MODULES              += systemcmds/auth
+MODULES		+= systemcmds/auth
+MODULES         += systemcmds/mtd
 
 #
 # Library modules

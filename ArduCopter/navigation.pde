@@ -42,15 +42,12 @@ static void calc_distance_and_bearing()
     }
 
     // calculate home distance and bearing
-    if( ap.home_is_set && (g_gps->status() == GPS::GPS_OK_FIX_3D || g_gps->status() == GPS::GPS_OK_FIX_2D)) {
+    if(GPS_ok()) {
         home_distance = pythagorous2(curr.x, curr.y);
         home_bearing = pv_get_bearing_cd(curr,Vector3f(0,0,0));
 
         // update super simple bearing (if required) because it relies on home_bearing
         update_super_simple_bearing(false);
-    }else{
-        home_distance = 0;
-        home_bearing = 0;
     }
 }
 
@@ -89,7 +86,7 @@ static bool set_nav_mode(uint8_t new_nav_mode)
 
         case NAV_NONE:
             nav_initialised = true;
-            // initialise global navigation variables including wp_distance, nav_roll
+            // initialise global navigation variables including wp_distance
             reset_nav_params();
             break;
 
@@ -178,8 +175,6 @@ static void reset_nav_params(void)
     // Will be set by nav or loiter controllers
     lon_error                       = 0;
     lat_error                       = 0;
-    nav_roll 						= 0;
-    nav_pitch 						= 0;
 }
 
 // get_yaw_slew - reduces rate of change of yaw to a maximum

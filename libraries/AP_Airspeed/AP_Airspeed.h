@@ -78,6 +78,9 @@ public:
         return _ratio;
     }
 
+    // get temperature if available
+    bool get_temperature(float &temperature);
+
     // set the airspeed ratio (dimensionless)
     void        set_airspeed_ratio(float ratio) {
         _ratio.set(ratio);
@@ -85,7 +88,7 @@ public:
 
     // return true if airspeed is enabled, and airspeed use is set
     bool        use(void) const {
-        return _enable && _use && _offset != 0 && _healthy;
+        return _enable && _use && _offset > 0 && _healthy;
     }
 
     // return true if airspeed is enabled
@@ -125,6 +128,9 @@ public:
 	// log data to MAVLink
 	void log_mavlink_send(mavlink_channel_t chan, const Vector3f &vground);
 
+    // return health status of sensor
+    bool healthy(void) const { return _healthy; }
+
     static const struct AP_Param::GroupInfo var_info[];
 
 
@@ -154,6 +160,9 @@ private:
     AP_Airspeed_I2C    digital;
 #endif
 };
+
+// the virtual pin for digital airspeed sensors
+#define AP_AIRSPEED_I2C_PIN 65
 
 #endif // __AP_AIRSPEED_H__
 

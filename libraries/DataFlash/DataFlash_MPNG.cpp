@@ -77,8 +77,9 @@ bool DataFlash_MPNG::_sem_take(uint8_t timeout)
 
 
 // Public Methods //////////////////////////////////////////////////////////////
-void DataFlash_MPNG::Init(void)
+void DataFlash_MPNG::Init(const struct LogStructure *structure, uint8_t num_types)
 {
+    DataFlash_Class::Init(structure, num_types);
     // init to zero
     df_NumPages = 0;
 

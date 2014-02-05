@@ -115,51 +115,54 @@ bool AP_InertialSensor_ITG3200::wait_for_sample(uint16_t timeout_ms)
 
 bool AP_InertialSensor_ITG3200::update( void )
 {
-	int32_t sum[7];
-	float count_scale;
-	Vector3f accel_scale = _accel_scale.get();
-		
-  // wait for at least 1 sample
-  if (!wait_for_sample(1000)) {
-      return false;
-  }
-
-	// disable interrupts for mininum time
-	hal.scheduler->suspend_timer_procs();
-    /** ATOMIC SECTION w/r/t TIMER PROCESS */
-    {
-        for (int i=0; i<7; i++) {
-            sum[i] = _sum[i];
-            _sum[i] = 0;
+         // wait for at least 1 sample
+        if (!wait_for_sample(1000)) {
+            return false;
         }
 
-        _num_samples = _count;
-        _count = 0;
-    }
-    hal.scheduler->resume_timer_procs();
+        _previous_accel[0] = _accel[0];
+
+	int32_t sum[7];
+	float count_scale;
+		
+	// disable interrupts for mininum time
+	hal.scheduler->suspend_timer_procs();
+        /** ATOMIC SECTION w/r/t TIMER PROCESS */
+        {
+		for (int i=0; i<7; i++) {
+		    sum[i] = _sum[i];
+		    _sum[i] = 0;
+		}
+
+		_num_samples = _count;
+		_count = 0;
+        }
+        hal.scheduler->resume_timer_procs();
 	
 	count_scale = 1.0f / _num_samples;
 	
-	_gyro = Vector3f(_gyro_data_sign[0] * sum[_gyro_data_index[0]],
+	_gyro[0] = Vector3f(_gyro_data_sign[0] * sum[_gyro_data_index[0]],
 					 _gyro_data_sign[1] * sum[_gyro_data_index[1]],
 					 _gyro_data_sign[2] * sum[_gyro_data_index[2]]);
-	_gyro.rotate(_board_orientation);
-	_gyro *= _gyro_scale * count_scale;
-	_gyro -= _gyro_offset;
+	_gyro[0].rotate(_board_orientation);
+	_gyro[0] *= _gyro_scale * count_scale;
+	_gyro[0] -= _gyro_offset[0];
 	
-	_accel = Vector3f(_accel_data_sign[0] * sum[_accel_data_index[0]],
+	_accel[0] = Vector3f(_accel_data_sign[0] * sum[_accel_data_index[0]],
 					  _accel_data_sign[1] * sum[_accel_data_index[1]],
 					  _accel_data_sign[2] * sum[_accel_data_index[2]]);
 	
-	_accel.rotate(_board_orientation);
-    _accel *= count_scale * ACCEL_SCALE_1G;
-    _accel.x *= accel_scale.x;
-    _accel.y *= accel_scale.y;
-    _accel.z *= accel_scale.z;
-	_accel -= _accel_offset;
+	_accel[0].rotate(_board_orientation);
+
+        Vector3f accel_scale = _accel_scale[0].get();
+        _accel[0] *= count_scale * ACCEL_SCALE_1G;
+        _accel[0].x *= accel_scale.x;
+        _accel[0].y *= accel_scale.y;
+        _accel[0].z *= accel_scale.z;
+	_accel[0] -= _accel_offset[0];
 	
 	
-    _temp    = _temp_to_celsius(sum[_temp_data_index] * count_scale);
+        _temp    = _temp_to_celsius(sum[_temp_data_index] * count_scale);
 
    	return true;
 }

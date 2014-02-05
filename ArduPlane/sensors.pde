@@ -20,7 +20,31 @@ static void init_barometer(void)
 static int32_t read_barometer(void)
 {
     barometer.read();
+    if (should_log(MASK_LOG_IMU)) {
+        Log_Write_Baro();
+    }
     return altitude_filter.apply(barometer.get_altitude() * 100.0);
+}
+
+static void init_sonar(void)
+{
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1
+    sonar.Init(&apm1_adc);
+#else
+    sonar.Init(NULL);
+#endif
+}
+
+// read the sonars
+static void read_sonars(void)
+{
+    if (!sonar.enabled()) {
+        // this makes it possible to disable sonar at runtime
+        return;
+    }
+
+    if (should_log(MASK_LOG_SONAR))
+        Log_Write_Sonar();
 }
 
 /*
@@ -30,6 +54,9 @@ static void read_airspeed(void)
 {
     if (airspeed.enabled()) {
         airspeed.read();
+        if (should_log(MASK_LOG_IMU)) {
+            Log_Write_Airspeed();
+        }
         calc_airspeed_errors();
     }
 }
@@ -56,11 +83,15 @@ static void read_battery(void)
 // RC_CHANNELS_SCALED message
 void read_receiver_rssi(void)
 {
-    rssi_analog_source->set_pin(g.rssi_pin);
-    float ret = rssi_analog_source->voltage_average() * 50;
-    receiver_rssi = constrain_int16(ret, 0, 255);
+    // avoid divide by zero
+    if (g.rssi_range <= 0) {
+        receiver_rssi = 0;
+    }else{
+        rssi_analog_source->set_pin(g.rssi_pin);
+        float ret = rssi_analog_source->voltage_average() * 255 / g.rssi_range;
+        receiver_rssi = constrain_int16(ret, 0, 255);
+    }
 }
-
 
 /*
   return current_loc.alt adjusted for ALT_OFFSET
@@ -71,3 +102,4 @@ static int32_t adjusted_altitude_cm(void)
 {
     return current_loc.alt - (g.alt_offset*100);
 }
+

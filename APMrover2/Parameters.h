@@ -34,6 +34,7 @@ public:
         k_param_initial_mode,
         k_param_scheduler,
         k_param_relay,
+        k_param_BoardConfig,
 
         // IO pins
         k_param_rssi_pin = 20,
@@ -43,14 +44,16 @@ public:
 
         // 110: Telemetry control
         //
-        k_param_gcs0 = 110, // stream rates for port0
-        k_param_gcs3,       // stream rates for port3
+        k_param_gcs0 = 110, // stream rates for uartA
+        k_param_gcs1,       // stream rates for uartC
         k_param_sysid_this_mav,
         k_param_sysid_my_gcs,
         k_param_serial0_baud,
-        k_param_serial3_baud,
+        k_param_serial1_baud,
         k_param_telem_delay,
         k_param_skip_gyro_cal,
+        k_param_gcs2,       // stream rates for uartD
+        k_param_serial2_baud,
 
         //
         // 130: Sensor parameters
@@ -185,7 +188,10 @@ public:
 	AP_Int16    sysid_this_mav;
 	AP_Int16    sysid_my_gcs;
     AP_Int8	    serial0_baud;
-    AP_Int8	    serial3_baud;
+    AP_Int8	    serial1_baud;
+#if MAVLINK_COMM_NUM_BUFFERS > 2
+    AP_Int8	    serial2_baud;
+#endif
     AP_Int8     telem_delay;
     AP_Int8     skip_gyro_cal;
 
