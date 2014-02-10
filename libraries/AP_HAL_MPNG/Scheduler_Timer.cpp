@@ -43,6 +43,10 @@ void AVRTimer::init() {
     // Enable overflow interrupt
     AVR_TIMER_TIMSK |= _BV( AVR_TIMER_TOIE );
 
+    sbi(TCCR5B, CS51);      // set timer 5 prescale factor to 64
+    sbi(TCCR5B, CS50);
+    sbi(TCCR5A, WGM50);     // put timer 5 in 8-bit phase correct pwm mode
+
     // set a2d prescale factor to 128
     // 16 MHz / 128 = 125 KHz, inside the desired 50-200 KHz range.
     // XXX: this will not work properly for other clock speeds, and
