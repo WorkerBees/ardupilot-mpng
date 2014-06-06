@@ -43,7 +43,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     GSCALAR(serial3_baud,           "SERIAL3_BAUD",   SERIAL3_BAUD/1000),
 
     // @Param: TELEM_DELAY
-    // @DisplayName: Telemetry startup delay 
+    // @DisplayName: Telemetry startup delay
     // @Description: The amount of time (in seconds) to delay radio telemetry to prevent an Xbee bricking on power up
     // @User: Standard
     // @Units: seconds
@@ -108,7 +108,7 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Param: TKOFF_THR_DELAY
     // @DisplayName: Takeoff throttle delay
-    // @Description: This parameter sets the time delay (in 1/10ths of a second) that the ground speed check is delayed after the forward acceleration check controlled by TKOFF_THR_MINACC has passed. For hand launches with pusher propellers it is essential that this is set to a value of no less than 2 (0.2 seconds) to ensure that the aircraft is safely clear of the throwers arm before the motor can start. 
+    // @Description: This parameter sets the time delay (in 1/10ths of a second) that the ground speed check is delayed after the forward acceleration check controlled by TKOFF_THR_MINACC has passed. For hand launches with pusher propellers it is essential that this is set to a value of no less than 2 (0.2 seconds) to ensure that the aircraft is safely clear of the throwers arm before the motor can start.
     // @Units: 0.1 seconds
     // @Range: 0 15
     // @Increment: 1
@@ -226,7 +226,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Description: What to do on fence breach. If this is set to 0 then no action is taken, and geofencing is disabled. If this is set to 1 then the plane will enter GUIDED mode, with the target waypoint as the fence return point. If this is set to 2 then the fence breach is reported to the ground station, but no other action is taken. If set to 3 then the plane enters guided mode but the pilot retains manual throttle control.
     // @Values: 0:None,1:GuidedMode,2:ReportOnly,3:GuidedModeThrPass
     // @User: Standard
-    GSCALAR(fence_action,           "FENCE_ACTION",   0),
+    GSCALAR(fence_action,           "FENCE_ACTION",   FENCE_ACTION),
 
     // @Param: FENCE_TOTAL
     // @DisplayName: Fence Total
@@ -238,7 +238,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @DisplayName: Fence Channel
     // @Description: RC Channel to use to enable geofence. PWM input above 1750 enables the geofence
     // @User: Standard
-    GSCALAR(fence_channel,          "FENCE_CHANNEL",  0),
+    GSCALAR(fence_channel,          "FENCE_CHANNEL",  FENCE_CHANNEL),
 
     // @Param: FENCE_MINALT
     // @DisplayName: Fence Minimum Altitude
@@ -247,7 +247,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Range: 0 32767
     // @Increment: 1
     // @User: Standard
-    GSCALAR(fence_minalt,           "FENCE_MINALT",   0),
+    GSCALAR(fence_minalt,           "FENCE_MINALT",   FENCE_MINALT),
 
     // @Param: FENCE_MAXALT
     // @DisplayName: Fence Maximum Altitude
@@ -256,7 +256,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Range: 0 32767
     // @Increment: 1
     // @User: Standard
-    GSCALAR(fence_maxalt,           "FENCE_MAXALT",   0),
+    GSCALAR(fence_maxalt,           "FENCE_MAXALT",   FENCE_MAXALT),
 #endif
 
     // @Param: RALLY_TOTAL
@@ -601,7 +601,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Description: Enable software elevon output mixer. If enabled then the APM will provide software elevon mixing on the aileron and elevator channels. There are 4 different mixing modes available, which refer to the 4 ways the elevator can be mapped to the two elevon servos. Note that you must not use elevon output mixing with hardware pass-through of RC values, such as with channel 8 manual control on an APM1. So if you use an APM1 then set FLTMODE_CH to something other than 8 before you enable ELEVON_OUTPUT. Please also see the MIXING_GAIN parameter for the output gain of the mixer.
     // @Values: 0:Disabled,1:UpUp,2:UpDown,3:DownUp,4:DownDown
     // @User: User
-    GSCALAR(elevon_output,           "ELEVON_OUTPUT",  0),
+    GSCALAR(elevon_output,           "ELEVON_OUTPUT",  ELEVON_OUTPUT),
 
     // @Param: MIXING_GAIN
     // @DisplayName: Mixing Gain
@@ -627,7 +627,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @DisplayName: Reset Switch Channel
     // @Description: RC channel to use to reset to last flight mode	after geofence takeover.
     // @User: Advanced
-    GSCALAR(reset_switch_chan,      "RST_SWITCH_CH",  0),
+    GSCALAR(reset_switch_chan,      "RST_SWITCH_CH",  RESET_SWITCH_CHANNEL),
 
     // @Param: RST_MISSION_CH
     // @DisplayName: Reset Mission Channel
@@ -762,10 +762,12 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Group: RC1_
     // @Path: ../libraries/RC_Channel/RC_Channel.cpp
     GGROUP(rc_1,                    "RC1_", RC_Channel),
+    // TODO: set g.rc_1._reverse, or call ->set_reverse() based on RC1_REV?
 
     // @Group: RC2_
     // @Path: ../libraries/RC_Channel/RC_Channel.cpp
     GGROUP(rc_2,                    "RC2_", RC_Channel),
+    // TODO: set g.rc_2._reverse, or call ->set_reverse() based on RC2_REV?
 
     // @Group: RC3_
     // @Path: ../libraries/RC_Channel/RC_Channel.cpp

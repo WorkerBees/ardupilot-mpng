@@ -59,7 +59,7 @@
 //
 
 #if defined( __AVR_ATmega1280__ )
- // default choices for a 1280. We can't fit everything in, so we 
+ // default choices for a 1280. We can't fit everything in, so we
  // make some popular choices by default
  #define LOGGING_ENABLED DISABLED
  #ifndef GEOFENCE_ENABLED
@@ -105,20 +105,20 @@
  #endif
 
  # define PIEZO_PIN AN3
- 
+
  #if MPNG_BOARD_TYPE == HK_RED_MULTIWII_PRO || MPNG_BOARD_TYPE == BLACK_VORTEX
 	 # define CONFIG_INS_TYPE   CONFIG_INS_ITG3200
 	 # define CONFIG_BARO       AP_BARO_BMP085
  #elif MPNG_BOARD_TYPE == PARIS_V5_OSD
 	 # define CONFIG_INS_TYPE   CONFIG_INS_ITG3200
 	 # define CONFIG_BARO       AP_BARO_MS5611
-	 # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_I2C 
+	 # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_I2C
  #else
 	 # define CONFIG_INS_TYPE   CONFIG_INS_MPU6000_I2C
 	 # define CONFIG_BARO       AP_BARO_MS5611
 	 # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_I2C
- #endif 
- 
+ #endif
+
  # define BATTERY_VOLT_PIN      0      // Battery voltage on A0
  # define BATTERY_CURR_PIN      1      // Battery current on A1
  # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
@@ -149,7 +149,7 @@
 // GPS Port speed
 #ifndef SERIAL2_BAUD
 	#define SERIAL2_BAUD 38400
-#endif 
+#endif
 
 
 #ifndef CONFIG_BARO
@@ -355,6 +355,9 @@
 #ifndef ELEVON_CH2_REVERSE
  # define ELEVON_CH2_REVERSE     DISABLED
 #endif
+#ifndef ELEVON_OUTPUT
+# define ELEVON_OUTPUT          DISABLED
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // CAMERA TRIGGER AND CONTROL
@@ -474,7 +477,8 @@
  # define LOGGING_ENABLED                ENABLED
 #endif
 
-#define DEFAULT_LOG_BITMASK     \
+#ifndef DEFAULT_LOG_BITMASK
+ # define DEFAULT_LOG_BITMASK     \
     MASK_LOG_ATTITUDE_MED | \
     MASK_LOG_GPS | \
     MASK_LOG_PM | \
@@ -486,7 +490,7 @@
     MASK_LOG_CURRENT | \
     MASK_LOG_TECS | \
     MASK_LOG_CAMERA
-
+#endif
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -561,5 +565,25 @@
 
 #ifndef SERIAL2_BUFSIZE
  # define SERIAL2_BUFSIZE 256
+#endif
+
+#ifndef FENCE_ACTION
+# define FENCE_ACTION 0
+#endif
+
+#ifndef FENCE_CHANNEL
+# define FENCE_CHANNEL 0
+#endif
+
+#ifndef FENCE_MINALT
+# define FENCE_MINALT 0
+#endif
+
+#ifndef FENCE_MAXALT
+# define FENCE_MAXALT 0
+#endif
+
+#ifndef RESET_SWITCH_CHANNEL
+# define RESET_SWITCH_CHANNEL 0
 #endif
 
