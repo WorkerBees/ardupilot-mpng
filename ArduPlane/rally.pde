@@ -15,7 +15,7 @@ static bool get_rally_point_with_index(unsigned i, RallyLocation &ret)
         // sanity check ...
         return false;
     }
-    return true; 
+    return true;
 }
 
 //save a rally point
@@ -35,7 +35,7 @@ static bool set_rally_point_with_index(unsigned i, const RallyLocation &rallyLoc
 }
 
 // 'best' means 'closest to Location loc' for now.
-static bool find_best_rally_point(const Location &myloc, const Location &homeloc, RallyLocation &ret) 
+static bool find_best_rally_point(const Location &myloc, const Location &homeloc, RallyLocation &ret)
 {
     float min_dis = -1;
 
@@ -53,7 +53,7 @@ static bool find_best_rally_point(const Location &myloc, const Location &homeloc
         }
     }
 
-    if (g.rally_limit_km > 0 && min_dis > g.rally_limit_km*1000.0f && 
+    if (g.rally_limit_km > 0 && min_dis > g.rally_limit_km*1000.0f &&
         get_distance(myloc, homeloc) < min_dis) {
         // return false, which makes home be used instead
         return false;
@@ -63,7 +63,7 @@ static bool find_best_rally_point(const Location &myloc, const Location &homeloc
 }
 
 // translate a RallyLocation to a Location
-static Location rally_location_to_location(const RallyLocation &r_loc, const Location &homeloc) 
+static Location rally_location_to_location(const RallyLocation &r_loc, const Location &homeloc)
 {
     Location ret;
 
@@ -84,7 +84,7 @@ static Location rally_location_to_location(const RallyLocation &r_loc, const Loc
 // return best RTL location from current position
 static Location rally_find_best_location(const Location &myloc, const Location &homeloc)
 {
-    RallyLocation ral_loc;
+    RallyLocation ral_loc= {};
     Location ret;
     if (find_best_rally_point(myloc, home, ral_loc)) {
         //we have setup Rally points: use them instead of Home for RTL
