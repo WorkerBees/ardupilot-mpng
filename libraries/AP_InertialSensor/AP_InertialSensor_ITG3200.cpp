@@ -6,7 +6,7 @@ extern const AP_HAL::HAL& hal;
 // *********************
 // I2C general functions
 // *********************
-#define I2C_PULLUPS_DISABLE        PORTD &= ~(1<<0); PORTD &= ~(1<<1); 
+#define I2C_PULLUPS_DISABLE        PORTD &= ~(1<<0); PORTD &= ~(1<<1);
 
 #define ITG3200_ADDRESS  	0x68 // 0xD0
 
@@ -40,6 +40,9 @@ AP_HAL::Semaphore* AP_InertialSensor_ITG3200::_i2c_sem = NULL;
 
 static volatile uint32_t _ins_timer = 0;
 
+#define BLACK_VORTEX 4
+#define PARIS_V5_OSD 6
+
 AP_InertialSensor_ITG3200::AP_InertialSensor_ITG3200(uint8_t board_type): AP_InertialSensor()
 {
 	_initialised = false;
@@ -61,7 +64,7 @@ uint16_t AP_InertialSensor_ITG3200::_init_sensor(Sample_rate sample_rate)
 {
 	if (_initialised) return 1;
 		_initialised = true;
-		
+
 	_i2c_sem = hal.i2c->get_semaphore();
 
     hal.scheduler->suspend_timer_procs();
@@ -77,7 +80,7 @@ uint16_t AP_InertialSensor_ITG3200::_init_sensor(Sample_rate sample_rate)
                         PSTR("ITG3200 init failed"));
         }
         if (tries++ > 5) {
-            hal.scheduler->panic(PSTR("PANIC: failed to boot ITG3200 5 times")); 
+            hal.scheduler->panic(PSTR("PANIC: failed to boot ITG3200 5 times"));
         }
     } while (1);
 
@@ -92,7 +95,7 @@ uint16_t AP_InertialSensor_ITG3200::_init_sensor(Sample_rate sample_rate)
     // start the timer process to read samples
     hal.scheduler->register_timer_process(AP_HAL_MEMBERPROC(&AP_InertialSensor_ITG3200::_poll_data));
 	return 1;
-	
+
 }
 
 // accumulation in ISR - must be read with interrupts disabled
@@ -124,7 +127,7 @@ bool AP_InertialSensor_ITG3200::update( void )
 	int32_t sum[7];
 	float count_scale;
 	Vector3f accel_scale = _accel_scale.get();
-		
+
   // wait for at least 1 sample
   if (!wait_for_sample(1000)) {
       return false;
@@ -143,28 +146,28 @@ bool AP_InertialSensor_ITG3200::update( void )
         _count = 0;
     }
     hal.scheduler->resume_timer_procs();
-	
+
 	count_scale = 1.0f / _num_samples;
-	
+
 	_gyro = Vector3f(_gyro_data_sign[0] * sum[_gyro_data_index[0]],
 					 _gyro_data_sign[1] * sum[_gyro_data_index[1]],
 					 _gyro_data_sign[2] * sum[_gyro_data_index[2]]);
 	_gyro.rotate(_board_orientation);
 	_gyro *= _gyro_scale * count_scale;
 	_gyro -= _gyro_offset;
-	
+
 	_accel = Vector3f(_accel_data_sign[0] * sum[_accel_data_index[0]],
 					  _accel_data_sign[1] * sum[_accel_data_index[1]],
 					  _accel_data_sign[2] * sum[_accel_data_index[2]]);
-	
+
 	_accel.rotate(_board_orientation);
     _accel *= count_scale * _accel_scale_1G;
     _accel.x *= accel_scale.x;
     _accel.y *= accel_scale.y;
     _accel.z *= accel_scale.z;
 	_accel -= _accel_offset;
-	
-	
+
+
     _temp    = _temp_to_celsius(sum[_temp_data_index] * count_scale);
 
    	return true;
@@ -172,7 +175,7 @@ bool AP_InertialSensor_ITG3200::update( void )
 
 
 // get_delta_time returns the time period in seconds overwhich the sensor data was collected
-float AP_InertialSensor_ITG3200::get_delta_time() 
+float AP_InertialSensor_ITG3200::get_delta_time()
 {
     return _delta_time;
 }
@@ -187,14 +190,14 @@ void AP_InertialSensor_ITG3200::_poll_data(void)
 	uint32_t now = hal.scheduler->micros();
 	if (now - _ins_timer > _micros_per_sample) {
 		_ins_timer = now;
-	
+
 	  if (hal.scheduler->in_timerprocess()) {
 	      _read_data_from_timerprocess();
 	  } else {
 	      /* Synchronous read - take semaphore */
 	      bool got = _i2c_sem->take(10);
 	      if (got) {
-	          _read_data_transaction(); 
+	          _read_data_transaction();
 	          _i2c_sem->give();
 	      } else {
 	          hal.scheduler->panic(
@@ -216,7 +219,7 @@ float AP_InertialSensor_ITG3200::get_gyro_drift_rate(void)
 // get number of samples read from the sensors
 bool AP_InertialSensor_ITG3200::sample_available()
 {
-    return _count > 0; 
+    return _count > 0;
 }
 
 
@@ -250,15 +253,15 @@ void AP_InertialSensor_ITG3200::_read_data_transaction()
 	_sum[0] += (int16_t)(((uint16_t)raw[4] << 8) | raw[5]);
 	_sum[1] += (int16_t)(((uint16_t)raw[2] << 8) | raw[3]);
 	_sum[2] += (int16_t)(((uint16_t)raw[0] << 8) | raw[1]);
-	
-		
+
+
 	memset(raw,0,6);
 	hal.i2c->readRegisters(_accel_addr, 0x02, 6, raw);
 	_sum[4] += (int16_t)(((uint16_t)raw[3] << 8) | raw[2]) >> 2; // Lower 2 bits has no data, we just cut it
 	_sum[5] += (int16_t)(((uint16_t)raw[1] << 8) | raw[0]) >> 2;
 	_sum[6] += (int16_t)(((uint16_t)raw[5] << 8) | raw[4]) >> 2;
-	
-	
+
+
 	_count++;
 	if (_count == 0) {
 		// rollover - v unlikely
@@ -272,15 +275,15 @@ bool AP_InertialSensor_ITG3200::hardware_init(Sample_rate sample_rate)
 	if (!_i2c_sem->take(100)) {
 		hal.scheduler->panic(PSTR("ITG3200: Unable to get semaphore"));
 	}
-	
+
 	// Chip reset
 	hal.scheduler->delay(10);
 	hal.i2c->writeRegister(ITG3200_ADDRESS, 0x3E, 0x80);
 	hal.scheduler->delay(5);
-	
+
 	// sample rate and filtering
 	uint8_t filter, default_filter;
-	
+
 	// to minimise the effects of aliasing we choose a filter
 	// that is less than half of the sample rate
 	switch (sample_rate) {
@@ -305,7 +308,7 @@ bool AP_InertialSensor_ITG3200::hardware_init(Sample_rate sample_rate)
 		break;
 	}
 	hal.scheduler->delay(5);
-	
+
 	// choose filtering frequency
 	switch (_mpu6000_filter) {
 	case 5:
@@ -328,13 +331,13 @@ bool AP_InertialSensor_ITG3200::hardware_init(Sample_rate sample_rate)
 	    // the user hasn't specified a specific frequency,
 	    // use the default value for the given sample rate
 	    filter = default_filter;
-	}	
+	}
 	hal.i2c->writeRegister(ITG3200_ADDRESS, 0x16, 0x18+filter);
-	
+
 	hal.scheduler->delay(5);
 	hal.i2c->writeRegister(ITG3200_ADDRESS, 0x3E, 0x03);
 	hal.scheduler->delay(10);
-			
+
 	if (_board_type == PARIS_V5_OSD) {
 		hal.i2c->writeRegister(_accel_addr, 0x10, 0x09); // acceleration data filter bandwidth = 15,63Hz
 		hal.scheduler->delay(5);
@@ -349,6 +352,6 @@ bool AP_InertialSensor_ITG3200::hardware_init(Sample_rate sample_rate)
 	hal.scheduler->delay(10);
 
 	_i2c_sem->give();
-	
+
   return true;
 }
