@@ -118,8 +118,7 @@
 //
 // BATTERY_EVENT                            OPTIONAL
 //
-// Set BATTERY_EVENT to ENABLED to enable low voltage or high discharge warnings.
-// The default is DISABLED.
+// Values: 0:Disabled,3:Voltage Only,4:Voltage and Current
 //
 // LOW_VOLTAGE                              OPTIONAL if BATTERY_EVENT is set.
 //
@@ -146,12 +145,15 @@
 
 // TODO: Battery level warning should be calculated dynmically and based on distance from HOME
 // If you only have enough battery left to RTL, then fricking RTL don't crash in the styx
+// TODO: These are not actually built into the code as defaults; the defaults are hardcoded in /library/AP_BattMonitor/AP_BattMonitor.cpp
 #define BATTERY_EVENT         ENABLED
-//#define LOW_VOLTAGE           9.6
-//#define VOLT_DIV_RATIO        3.56
+#define VOLTAGE_PIN           1
+#define LOW_VOLTAGE           10.5
+#define VOLT_DIV_RATIO        ((100+47)/(47))
+//#define CURR_PIN              2
 //#define CURR_AMPS_PER_VOLT           27.32
 //#define CURR_AMPS_OFFSET      0.0
-//#define HIGH_DISCHARGE        1760
+#define HIGH_DISCHARGE        2400  // (3000 * 80%)
 
 //////////////////////////////////////////////////////////////////////////////
 // INPUT_VOLTAGE                            OPTIONAL
@@ -529,7 +531,7 @@
 // The default is to have GCS Heartbeat failsafes DISABLED
 // The default behaviour is to ignore failsafes in AUTO and LOITER modes.
 //
-// TODO: This will want to be disabled for full-auto wher there might not be a GCS turned on
+// TODO: This will want to be disabled for full-auto wher there might not be a GCS turned on - but see line just above this
 #define GCS_HEARTBEAT_FAILSAFE  DISABLED
 
 // TODO: For now, circle then RTL -- we will want to fix this algorithm, especially for low battery warning which is not remedied
