@@ -40,7 +40,6 @@
 // GPS_PROTOCOL_NMEA        Standard NMEA GPS.      NOT SUPPORTED (yet?)
 //
 #define GPS_PROTOCOL  GPS_PROTOCOL_AUTO
-//
 
 //////////////////////////////////////////////////////////////////////////////
 // AIRSPEED_SENSOR                          OPTIONAL
@@ -86,9 +85,8 @@
 // that ground stations can tell them apart.
 //
 #define GCS_PROTOCOL        GCS_PROTOCOL_MAVLINK
-#define GCS_PORT        3
-//#define MAV_SYSTEM_ID     1
-//
+#define GCS_PORT            0   // Use main console port for now
+#define MAV_SYSTEM_ID       1
 
 //////////////////////////////////////////////////////////////////////////////
 // Serial port speeds.
@@ -148,7 +146,7 @@
 
 // TODO: Battery level warning should be calculated dynmically and based on distance from HOME
 // If you only have enough battery left to RTL, then fricking RTL don't crash in the styx
-#define BATTERY_EVENT           ENABLED
+#define BATTERY_EVENT         ENABLED
 //#define LOW_VOLTAGE           9.6
 //#define VOLT_DIV_RATIO        3.56
 //#define CURR_AMPS_PER_VOLT           27.32
