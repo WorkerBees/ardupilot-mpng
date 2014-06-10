@@ -3,6 +3,13 @@
 // Select Megapirate board type:
 #define MPNG_BOARD_TYPE   CRIUS_V1
 
+
+// Turn some things off
+#define CLI_ENABLED DISABLED
+#define MOUNT2 DISABLED
+#define CAMERA DISABLED
+
+
 // Units
 // -----
 //
@@ -838,7 +845,7 @@
 // MASK_LOG_CAMERA                              OPTIONAL
 // Logs camera events when pictures are taken
 //
-#define LOGGING_ENABLED     ENABLED
+#define LOGGING_ENABLED     DISABLED
 #define DEFAULT_LOG_BITMASK     \
     MASK_LOG_ATTITUDE_MED | \
     MASK_LOG_GPS | \
