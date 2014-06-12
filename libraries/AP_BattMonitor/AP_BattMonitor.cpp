@@ -9,7 +9,7 @@ const AP_Param::GroupInfo AP_BattMonitor::var_info[] PROGMEM = {
     // @Description: Controls enabling monitoring of the battery's voltage and current
     // @Values: 0:Disabled,3:Voltage Only,4:Voltage and Current
     // @User: Standard
-    AP_GROUPINFO("MONITOR", 0, AP_BattMonitor, _monitoring, AP_BATT_MONITOR_DISABLED),
+    AP_GROUPINFO("MONITOR", 0, AP_BattMonitor, _monitoring, AP_BATT_MONITOR),
 
     // @Param: VOLT_PIN
     // @DisplayName: Battery Voltage sensing pin
