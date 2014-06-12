@@ -69,7 +69,7 @@
 // # define AP_BATT_CURR_AMP_PERVOLT_DEFAULT 27.32  // Amp/Volt for AttoPilot 50V/90A sensor
 // # define AP_BATT_CURR_AMP_PERVOLT_DEFAULT 13.66  // Amp/Volt for AttoPilot 13.6V/45A sensor
 
-#define AP_BATT_CAPACITY_DEFAULT            3300
+#define AP_BATT_CAPACITY_DEFAULT            3000
 #define AP_BATT_LOW_VOLT_TIMEOUT_MS         10000   // low voltage of 10 seconds will cause battery_exhausted to return true
 
 class AP_BattMonitor
