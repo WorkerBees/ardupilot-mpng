@@ -54,7 +54,7 @@
 #elif CONFIG_HAL_BOARD == HAL_BOARD_MPNG
  # define AP_BATT_VOLT_PIN                  1
  # define AP_BATT_CURR_PIN                  -1
- # define AP_BATT_VOLTDIVIDER_DEFAULT       ((100.0+47.0)/47.0)
+ # define AP_BATT_VOLTDIVIDER_DEFAULT       (9.75/2.53)
  # define AP_BATT_CURR_AMP_PERVOLT_DEFAULT  17.0
 #else
  # define AP_BATT_VOLT_PIN                  -1
