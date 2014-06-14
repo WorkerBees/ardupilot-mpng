@@ -46,6 +46,7 @@
 // GPS_PROTOCOL_SIRF        SiRF-based GPS in Binary mode.  NOT TESTED
 // GPS_PROTOCOL_NMEA        Standard NMEA GPS.      NOT SUPPORTED (yet?)
 //
+// AUTO mode will force UBlox to 38400 no matter how it's configured, apparently
 #define GPS_PROTOCOL  GPS_PROTOCOL_AUTO
 
 //////////////////////////////////////////////////////////////////////////////
@@ -111,11 +112,8 @@
 #define SERIAL0_BAUD        115200
 
 // GPS
-#define SERIAL1_BAUD          9600
+#define SERIAL2_BAUD         38400
 
-// Telemetry
-#define SERIAL3_BAUD         57600
-//
 
 //////////////////////////////////////////////////////////////////////////////
 // Battery monitoring                       OPTIONAL
