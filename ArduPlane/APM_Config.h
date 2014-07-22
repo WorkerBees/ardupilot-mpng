@@ -5,7 +5,7 @@
 
 
 // Turn some things off
-#define CLI_ENABLED DISABLED
+#define CLI_ENABLED ENABLED
 #define MOUNT2 DISABLED
 #define CAMERA DISABLED
 
@@ -154,7 +154,7 @@
 #define BATTERY_EVENT         ENABLED
 #define VOLTAGE_PIN           1
 #define LOW_VOLTAGE           10.5
-#define VOLT_DIV_RATIO        ((100+47)/(47))
+#define VOLT_DIV_RATIO        3.127659 // ((100+47)/47)
 //#define CURR_PIN              2
 //#define CURR_AMPS_PER_VOLT           27.32
 //#define CURR_AMPS_OFFSET      0.0
@@ -250,11 +250,11 @@
 //
 #define FLIGHT_MODE_CHANNEL 5
 //
-#define FLIGHT_MODE_1         RTL
+#define FLIGHT_MODE_1         AUTO
 #define FLIGHT_MODE_2         AUTO
 #define FLIGHT_MODE_3         AUTO
-#define FLIGHT_MODE_4         FLY_BY_WIRE_B
-#define FLIGHT_MODE_5         FLY_BY_WIRE_B
+#define FLIGHT_MODE_4         MANUAL
+#define FLIGHT_MODE_5         MANUAL
 #define FLIGHT_MODE_6         MANUAL
 
 
@@ -449,23 +449,23 @@
 // users to start using the APM without running the WaypointWriter first.
 //
 
-#define HEAD_MAX                45
+#define HEAD_MAX                30
 #define PITCH_MAX               15
 #define PITCH_MIN               -25
 #define PITCH_TARGET            0
 #define THROTTLE_MIN            0 // percent
 #define THROTTLE_CRUISE         45
-#define THROTTLE_MAX            85
+#define THROTTLE_MAX            100
 #define THROTTLE_SLEW_LIMIT     DISABLED
 #define AIRSPEED_FBW_MIN        (15 * MPH_IN_MPS)
 #define AIRSPEED_FBW_MAX        (45 * MPH_IN_MPS)
 #define AIRSPEED_CRUISE         (30 * MPH_IN_MPS)
 #define MIN_GNDSPEED            0
 #define ALT_HOLD_FBW            0          // TODO: Set to 0 for now so we can line up to land under FBWB; Can we make a "landing" mode which is basically FBWB but at low altitude with "down" instruction, it flares and lands?
-#define WP_RADIUS_DEFAULT       30
-#define LOITER_RADIUS_DEFAULT   45
+#define WP_RADIUS_DEFAULT       15
+#define LOITER_RADIUS_DEFAULT   25
 #define USE_CURRENT_ALT         FALSE
-#define ALT_HOLD_HOME           10
+#define ALT_HOLD_HOME           15
 
 //////////////////////////////////////////////////////////////////////////////
 // THROTTLE_FAILSAFE                        OPTIONAL
@@ -497,7 +497,7 @@
 // TODO: This will want to be disabled for full-auto wher there never is a RC controller turned on
 // Enable it for now during testing
 #define THROTTLE_FAILSAFE   ENABLED
-#define THROTTLE_FS_VALUE   1050
+#define THROTTLE_FS_VALUE   975
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -537,7 +537,7 @@
 // The default behaviour is to ignore failsafes in AUTO and LOITER modes.
 //
 // TODO: This will want to be disabled for full-auto wher there might not be a GCS turned on - but see line just above this
-#define GCS_HEARTBEAT_FAILSAFE  DISABLED
+#define GCS_HEARTBEAT_FAILSAFE  ENABLED
 
 // TODO: For now, circle then RTL -- we will want to fix this algorithm, especially for low battery warning which is not remedied
 // We want to RTL then glide/land, not circle then glide or circle then RTL/circle
@@ -555,7 +555,7 @@
 //
 #define GEOFENCE_ENABLED        ENABLED
 #define FENCE_MINALT            0       // Allow landing
-#define FENCE_MAXALT            120     // Well under 500 feet for FAA nazis
+#define FENCE_MAXALT            120     // Under 400 feet for FAA nazis
 #define FENCE_ACTION            3       //
 
 #define FENCE_CHANNEL           6       // RIGHT control knob
@@ -843,7 +843,7 @@
 // MASK_LOG_CAMERA                              OPTIONAL
 // Logs camera events when pictures are taken
 //
-#define LOGGING_ENABLED     DISABLED
+#define LOGGING_ENABLED     ENABLED
 #define DEFAULT_LOG_BITMASK     \
     MASK_LOG_ATTITUDE_MED | \
     MASK_LOG_GPS | \
