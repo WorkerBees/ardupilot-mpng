@@ -450,13 +450,13 @@
 //
 
 #define HEAD_MAX                30
-#define PITCH_MAX               15
+#define PITCH_MAX               25
 #define PITCH_MIN               -25
 #define PITCH_TARGET            0
 #define THROTTLE_MIN            0 // percent
-#define THROTTLE_CRUISE         45
+#define THROTTLE_CRUISE         60
 #define THROTTLE_MAX            100
-#define THROTTLE_SLEW_LIMIT     DISABLED
+#define THROTTLE_SLEW_LIMIT     75
 #define AIRSPEED_FBW_MIN        (15 * MPH_IN_MPS)
 #define AIRSPEED_FBW_MAX        (45 * MPH_IN_MPS)
 #define AIRSPEED_CRUISE         (30 * MPH_IN_MPS)
@@ -635,23 +635,23 @@
 // Roll to yaw mixing.  This allows for co-ordinated turns.
 // Default is 0.50 (50% of roll control also applied to yaw control.)
 //
-#define SERVO_ROLL_P        1.087
-#define SERVO_ROLL_I        0.0
-#define SERVO_ROLL_D        0.0
-#define SERVO_ROLL_INT_MAX  5
-#define ROLL_SLEW_LIMIT     0
+//#define SERVO_ROLL_P        1.087
+//#define SERVO_ROLL_I        0.0
+//#define SERVO_ROLL_D        0.0
+//#define SERVO_ROLL_INT_MAX  5
+//#define ROLL_SLEW_LIMIT     0//
 
-#define SERVO_PITCH_P       0.919
-#define SERVO_PITCH_I       0.0
-#define SERVO_PITCH_D       0.0
-#define SERVO_PITCH_INT_MAX 5
-#define PITCH_COMP          0.2
+//#define SERVO_PITCH_P       0.919
+//#define SERVO_PITCH_I       0.0
+//#define SERVO_PITCH_D       0.0
+//#define SERVO_PITCH_INT_MAX 5
+//#define PITCH_COMP          0.2//
 
-#define SERVO_YAW_P         0.0     // Default is zero.  A suggested value if you want to use this parameter is 0.5
-#define SERVO_YAW_I         0.0
-#define SERVO_YAW_D         0.0
-#define SERVO_YAW_INT_MAX   5
-#define RUDDER_MIX          0          // We're a wing.  We have no rudder
+//#define SERVO_YAW_P         0.0     // Default is zero.  A suggested value if you want to use this parameter is 0.5
+//#define SERVO_YAW_I         0.0
+//#define SERVO_YAW_D         0.0
+//#define SERVO_YAW_INT_MAX   5
+//#define RUDDER_MIX          0          // We're a wing.  We have no rudder
 
 //////////////////////////////////////////////////////////////////////////////
 // Navigation control gains
@@ -712,20 +712,20 @@
 // to maintain the programmed altitude).
 // Default is 5 meters.
 //
-#define NAV_ROLL_P          0.7
-#define NAV_ROLL_I          0
-#define NAV_ROLL_D          0.02
-#define NAV_ROLL_INT_MAX    5
+//#define NAV_ROLL_P          0.7
+//#define NAV_ROLL_I          0
+//#define NAV_ROLL_D          0.02
+//#define NAV_ROLL_INT_MAX    5//
 
-#define NAV_PITCH_ASP_P     0.65
-#define NAV_PITCH_ASP_I     0.1
-#define NAV_PITCH_ASP_D     0.0
-#define NAV_PITCH_ASP_INT_MAX 5
+//#define NAV_PITCH_ASP_P     0.65
+//#define NAV_PITCH_ASP_I     0.1
+//#define NAV_PITCH_ASP_D     0.0
+//#define NAV_PITCH_ASP_INT_MAX 5//
 
-#define NAV_PITCH_ALT_P     0.65
-#define NAV_PITCH_ALT_I     0.1
-#define NAV_PITCH_ALT_D     0.0
-#define NAV_PITCH_ALT_INT_MAX 5
+//#define NAV_PITCH_ALT_P     0.65
+//#define NAV_PITCH_ALT_I     0.1
+//#define NAV_PITCH_ALT_D     0.0
+//#define NAV_PITCH_ALT_INT_MAX 5
 
 //////////////////////////////////////////////////////////////////////////////
 // Energy/Altitude control gains
@@ -765,13 +765,13 @@
 //
 // Throttle to pitch feed-forward gain.  Default is 0.
 //
-#define THROTTLE_TE_P       0.50
-#define THROTTLE_TE_I       0.0
-#define THROTTLE_TE_D       0.0
-#define THROTTLE_TE_INT_MAX 20
+//#define THROTTLE_TE_P       0.50
+//#define THROTTLE_TE_I       0.0
+//#define THROTTLE_TE_D       0.0
+//#define THROTTLE_TE_INT_MAX 20//
 
-#define P_TO_T              0
-#define T_TO_P              0
+//#define P_TO_T              0
+//#define T_TO_P              0
 
 //////////////////////////////////////////////////////////////////////////////
 // Crosstrack compensation
@@ -787,8 +787,8 @@
 // Maximum angle used to correct for track following.
 // Default value is 30 degrees.
 //
-#define XTRACK_GAIN         1  // deg/m
-#define XTRACK_ENTRY_ANGLE  30 // deg
+//#define XTRACK_GAIN         1  // deg/m
+//#define XTRACK_ENTRY_ANGLE  30 // deg
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
