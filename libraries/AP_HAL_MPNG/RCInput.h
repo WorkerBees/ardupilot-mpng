@@ -10,7 +10,7 @@
 
 #define SERIAL_PPM_DISABLED 1
 #define SERIAL_PPM_ENABLED  2
-#define SERIAL_PPM_ENABLED_PL1 3 
+#define SERIAL_PPM_ENABLED_PL1 3
 
 #define RC_MAP_STANDARD 1
 #define RC_MAP_GRAUPNER 2
@@ -28,13 +28,14 @@ public:
     void     init(void* isrregistry);
 
     /**
-     * valid_channels():
-     * Return the number of currently valid channels.
-     * Typically 0 (no valid radio channels) or 8 (implementation-defined)
-     * Could be less than or greater than 8 depending on your incoming radio
-     * or PPM stream
+     * Return true if new input since the last read()
      */
-    uint8_t  valid_channels();
+    bool  new_input();
+
+    /**
+     * Return the number of input channels in last read()
+     */
+    uint8_t num_channels();
 
     /**
      * read(uint8_t):
@@ -69,15 +70,16 @@ private:
     static void _ppmsum_PL1_isr(void);
 		static void _ppmsum_A8_isr(void);
 		static void _pwm_A8_A15_isr(void);
-		
+
     /* private variables to communicate with input capture isr */
     static volatile uint16_t _pulse_capt[AVR_RC_INPUT_NUM_CHANNELS];
-    static volatile uint8_t  _valid_channels;
     static volatile uint16_t rcPinValueRAW[AVR_RC_INPUT_NUM_CHANNELS];
+    static volatile uint8_t  _num_channels;
+    static volatile bool  _new_input;
     static volatile uint16_t edgeTime[8];
-	
+
     /* override state */
-    uint16_t _override[AVR_RC_INPUT_NUM_CHANNELS]; 
+    uint16_t _override[AVR_RC_INPUT_NUM_CHANNELS];
 };
 
 #endif // __AP_HAL_MPNG_RC_INPUT_H__

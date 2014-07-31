@@ -7,25 +7,25 @@ include $(MK_DIR)/find_tools.mk
 # Tool options
 #
 DEFINES         =   -DF_CPU=$(F_CPU)
-DEFINES        +=   -DSKETCH=\"$(SKETCH)\"
+DEFINES        +=   -DSKETCH=\"$(SKETCH)\" -DAPM_BUILD_DIRECTORY=APM_BUILD_$(SKETCH)
 DEFINES        +=   $(EXTRAFLAGS) # from user config.mk
-DEFINES        +=   -DCONFIG_HAL_BOARD=$(HAL_BOARD)
+DEFINES        +=   -DCONFIG_HAL_BOARD=$(HAL_BOARD) -DCONFIG_HAL_BOARD_SUBTYPE=$(HAL_BOARD_SUBTYPE)
 WARNFLAGS       =   -Wformat -Wall -Wshadow -Wpointer-arith -Wcast-align
-WARNFLAGS      +=   -Wwrite-strings -Wformat=2
+WARNFLAGS      +=   -Wwrite-strings -Wformat=2 -Wno-unused-parameter -Wno-missing-field-initializers
 WARNFLAGSCXX    =   -Wno-reorder
 DEPFLAGS        =   -MD -MT $@
 
 CXXOPTS         =   -ffunction-sections -fdata-sections -fno-exceptions -fsigned-char
 COPTS           =   -ffunction-sections -fdata-sections -fsigned-char
 
-ASOPTS          =   -x assembler-with-cpp 
+ASOPTS          =   -x assembler-with-cpp
 LISTOPTS        =   -adhlns=$(@:.o=.lst)
 
 NATIVE_CPUFLAGS     = -D_GNU_SOURCE
 NATIVE_CPULDFLAGS   = -g
 NATIVE_OPTFLAGS     = -O0 -g
 
-AVR_CPUFLAGS        = -mmcu=$(MCU) -mcall-prologues 
+AVR_CPUFLAGS        = -mmcu=$(MCU) -mcall-prologues
 AVR_CPULDFLAGS      = -Wl,-m,avr6
 AVR_OPTFLAGS        = -Os
 
@@ -85,13 +85,13 @@ HARDWARE_CORE :=	$(shell grep $(BOARD).build.core $(BOARDFILE) | cut -d = -f 2)
 UPLOAD_SPEED :=	$(shell grep $(BOARD).upload.speed $(BOARDFILE) | cut -d = -f 2)
 
 # User can define USERAVRDUDEFLAGS = -V in their config.mk to skip verification
-USERAVRDUDEFLAGS ?= 
+USERAVRDUDEFLAGS ?=
 #make sure the avrdude conf file is referenced correctly in cygwin
-ifneq ($(findstring CYGWIN, $(SYSTYPE)),) 
+ifneq ($(findstring CYGWIN, $(SYSTYPE)),)
   USERAVRDUDEFLAGS := -C $(ARDUINO)/hardware/tools/avr/etc/avrdude.conf
 endif
 #make sure the avrdude conf file is referenced correctly in mingw
-ifneq ($(findstring MINGW, $(SYSTYPE)),) 
+ifneq ($(findstring MINGW, $(SYSTYPE)),)
   USERAVRDUDEFLAGS := -C $(ARDUINO)/hardware/tools/avr/etc/avrdude.conf
 endif
 #make sure the avrdude conf file is referenced correctly in darwin
@@ -110,10 +110,10 @@ ifeq ($(BOARD),mega)
 endif
 
 #On Cygwin, the wiring programmer will perform the DTR reset for us
-ifneq ($(findstring CYGWIN, $(SYSTYPE)),) 
+ifneq ($(findstring CYGWIN, $(SYSTYPE)),)
   UPLOAD_PROTOCOL	:=	wiring
 endif
- 
+
 ifeq ($(MCU),)
 $(error ERROR: Could not locate board $(BOARD) in $(BOARDFILE))
 endif
@@ -151,7 +151,7 @@ print-%:
 
 .PHONY: upload
 upload: $(SKETCHHEX)
-	$(AVRDUDE) -c $(UPLOAD_PROTOCOL) -p $(MCU) -P $(PORT) -b$(UPLOAD_SPEED) $(USERAVRDUDEFLAGS) -U flash:w:$(SKETCHHEX):i
+	$(AVRDUDE) -c $(UPLOAD_PROTOCOL) -p $(MCU) -P $(PORT) -b$(UPLOAD_SPEED) $(USERAVRDUDEFLAGS) -D -U flash:w:$(SKETCHHEX):i
 
 debug:
 	$(AVARICE) --mkII --capture --jtag usb :4242 & \

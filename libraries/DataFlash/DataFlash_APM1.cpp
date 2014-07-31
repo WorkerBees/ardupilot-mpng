@@ -87,12 +87,13 @@ bool DataFlash_APM1::_sem_take(uint8_t timeout)
 
 
 // Public Methods //////////////////////////////////////////////////////////////
-void DataFlash_APM1::Init(void)
+void DataFlash_APM1::Init(const struct LogStructure *structure, uint8_t num_types)
 {
+    DataFlash_Class::Init(structure, num_types);
     // init to zero
     df_NumPages = 0;
 
-    hal.gpio->pinMode(DF_RESET,GPIO_OUTPUT);
+    hal.gpio->pinMode(DF_RESET,HAL_GPIO_OUTPUT);
     // Reset the chip
     hal.gpio->write(DF_RESET,0);
     hal.scheduler->delay(1);
@@ -179,7 +180,7 @@ uint16_t DataFlash_APM1::PageSize()
 {
     if (!_sem_take(5))
         return 0;
-    
+
     uint16_t ret = 528-((ReadStatusReg()&0x01) << 4); // if first bit 1 trhen 512 else 528 bytes
 
     _spi_sem->give();
@@ -250,13 +251,13 @@ void DataFlash_APM1::BufferToPage (uint8_t BufferNum, uint16_t PageAdr, uint8_t 
 
 }
 
-void DataFlash_APM1::BlockWrite (uint8_t BufferNum, uint16_t IntPageAdr, 
+void DataFlash_APM1::BlockWrite (uint8_t BufferNum, uint16_t IntPageAdr,
                                  const void *pHeader, uint8_t hdr_size,
                                  const void *pBuffer, uint16_t size)
 {
     if (!_sem_take(1))
         return;
-    
+
     // activate dataflash command decoder
     _spi->cs_assert();
 
@@ -396,7 +397,7 @@ void DataFlash_APM1::ChipErase()
     while(!ReadStatus()) {
         hal.scheduler->delay(6);
     }
-    
+
     _spi_sem->give();
-    
+
 }

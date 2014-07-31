@@ -58,9 +58,11 @@ struct sockaddr_in SITL_State::_rcout_addr;
 pid_t SITL_State::_parent_pid;
 uint32_t SITL_State::_update_count;
 bool SITL_State::_motors_on;
+uint16_t SITL_State::sonar_pin_value;
 uint16_t SITL_State::airspeed_pin_value;
 uint16_t SITL_State::voltage_pin_value;
 uint16_t SITL_State::current_pin_value;
+float SITL_State::_current;
 
 AP_Baro_HIL *SITL_State::_barometer;
 AP_InertialSensor_HIL *SITL_State::_ins;
@@ -72,7 +74,7 @@ SITL *SITL_State::_sitl;
 uint16_t SITL_State::pwm_output[11];
 uint16_t SITL_State::last_pwm_output[11];
 uint16_t SITL_State::pwm_input[8];
-bool SITL_State::pwm_valid;
+bool SITL_State::new_rc_input;
 
 // catch floating point exceptions
 void SITL_State::_sig_fpe(int signum)
@@ -96,11 +98,13 @@ void SITL_State::_parse_command_line(int argc, char * const argv[])
 	int opt;
 
 	signal(SIGFPE, _sig_fpe);
+	// No-op SIGPIPE handler
+	signal(SIGPIPE, SIG_IGN);
 
     setvbuf(stdout, (char *)0, _IONBF, 0);
     setvbuf(stderr, (char *)0, _IONBF, 0);
 
-	while ((opt = getopt(argc, argv, "swhr:H:CI:")) != -1) {
+	while ((opt = getopt(argc, argv, "swhr:H:CI:P:")) != -1) {
 		switch (opt) {
 		case 'w':
 			AP_Param::erase_all();
@@ -121,6 +125,9 @@ void SITL_State::_parse_command_line(int argc, char * const argv[])
             _rcout_port += instance * 10;
             _simin_port += instance * 10;
         }
+			break;
+		case 'P':
+            _set_param_default(optarg);
 			break;
 		default:
 			_usage();
@@ -153,6 +160,37 @@ void SITL_State::_parse_command_line(int argc, char * const argv[])
 }
 
 
+void SITL_State::_set_param_default(char *parm)
+{
+    char *p = strchr(parm, '=');
+    if (p == NULL) {
+        printf("Please specify parameter as NAME=VALUE");
+        exit(1);
+    }
+    float value = atof(p+1);
+    *p = 0;
+    enum ap_var_type var_type;
+    AP_Param *vp = AP_Param::find(parm, &var_type);
+    if (vp == NULL) {
+        printf("Unknown parameter %s\n", parm);
+        exit(1);        
+    }
+    if (var_type == AP_PARAM_FLOAT) {
+        ((AP_Float *)vp)->set_and_save(value);
+    } else if (var_type == AP_PARAM_INT32) {
+        ((AP_Int32 *)vp)->set_and_save(value);
+    } else if (var_type == AP_PARAM_INT16) {
+        ((AP_Int16 *)vp)->set_and_save(value);
+    } else if (var_type == AP_PARAM_INT8) {
+        ((AP_Int8 *)vp)->set_and_save(value);
+    } else {
+        printf("Unable to set parameter %s\n", parm);
+        exit(1);
+    }
+    printf("Set parameter %s to %f\n", parm, value);
+}
+
+
 /*
   setup for SITL handling
  */
@@ -178,7 +216,7 @@ void SITL_State::_sitl_setup(void)
     if (_sitl != NULL) {
         // setup some initial values
         _update_barometer(_initial_height);
-        _update_ins(0, 0, 0, 0, 0, 0, 0, 0, -9.8, 0);
+        _update_ins(0, 0, 0, 0, 0, 0, 0, 0, -9.8, 0, _initial_height);
         _update_compass(0, 0, 0);
         _update_gps(0, 0, 0, 0, 0, 0, false);
     }
@@ -231,7 +269,7 @@ void SITL_State::_timer_handler(int signum)
 
 	static bool in_timer;
 
-	if (in_timer || _scheduler->interrupts_are_blocked()){
+	if (in_timer || _scheduler->interrupts_are_blocked() || _sitl == NULL){
 		return;
     }
 
@@ -258,9 +296,9 @@ void SITL_State::_timer_handler(int signum)
 #endif
 
     // simulate RC input at 50Hz
-    if (hal.scheduler->millis() - last_pwm_input >= 20) {
+    if (hal.scheduler->millis() - last_pwm_input >= 20 && _sitl->rc_fail == 0) {
         last_pwm_input = hal.scheduler->millis();
-        pwm_valid = true;
+        new_rc_input = true;
     }
 
 	/* check for packet from flight sim */
@@ -294,7 +332,7 @@ void SITL_State::_timer_handler(int signum)
         _update_ins(_sitl->state.rollDeg, _sitl->state.pitchDeg, _sitl->state.yawDeg,
                     _sitl->state.rollRate, _sitl->state.pitchRate, _sitl->state.yawRate,
                     _sitl->state.xAccel, _sitl->state.yAccel, _sitl->state.zAccel,
-                    _sitl->state.airspeed);
+                    _sitl->state.airspeed, _sitl->state.altitude);
         _update_barometer(_sitl->state.altitude);
         _update_compass(_sitl->state.rollDeg, _sitl->state.pitchDeg, _sitl->state.yawDeg);
     }
@@ -342,6 +380,13 @@ void SITL_State::_fdm_input(void)
 
         if (_sitl != NULL) {
             _sitl->state = d.fg_pkt;
+            // prevent bad inputs from SIM from corrupting our state
+            double *v = &_sitl->state.latitude;
+            for (uint8_t i=0; i<17; i++) {
+                if (isinf(v[i]) || isnan(v[i]) || fabsf(v[i]) > 1.0e10) {
+                    v[i] = 0;
+                }
+            }
         }
 		_update_count++;
 
@@ -484,14 +529,17 @@ void SITL_State::_simulator_output(void)
     // lose 0.7V at full throttle
     float voltage = _sitl->batt_voltage - 0.7f*throttle;
     // assume 50A at full throttle
-    float current = 50.0 * throttle;
+    _current = 50.0 * throttle;
     // assume 3DR power brick
     voltage_pin_value = ((voltage / 10.1) / 5.0) * 1024;
-    current_pin_value = ((current / 17.0) / 5.0) * 1024;
+    current_pin_value = ((_current / 17.0) / 5.0) * 1024;
 
 	// setup wind control
     float wind_speed = _sitl->wind_speed * 100;
     float altitude = _barometer?_barometer->get_altitude():0;
+    if (altitude < 0) {
+        altitude = 0;
+    }
     if (altitude < 60) {
         wind_speed *= altitude / 60.0f;
     }
@@ -581,6 +629,16 @@ void SITL_State::loop_hook(void)
         max_fd = max(fd, max_fd);
     }
     fd = ((AVR_SITL::SITLUARTDriver*)hal.uartC)->_fd;
+    if (fd != -1) {
+        FD_SET(fd, &fds);
+        max_fd = max(fd, max_fd);
+    }
+    fd = ((AVR_SITL::SITLUARTDriver*)hal.uartD)->_fd;
+    if (fd != -1) {
+        FD_SET(fd, &fds);
+        max_fd = max(fd, max_fd);
+    }
+    fd = ((AVR_SITL::SITLUARTDriver*)hal.uartE)->_fd;
     if (fd != -1) {
         FD_SET(fd, &fds);
         max_fd = max(fd, max_fd);

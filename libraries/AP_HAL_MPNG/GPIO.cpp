@@ -16,7 +16,7 @@ SIGNAL(INT6_vect) {
     if (AVRGPIO::_interrupt_6) {
         AVRGPIO::_interrupt_6();
     }
-}   
+}
 
 // Get the bit location within the hardware port of the given virtual pin.
 // This comes from the pins_*.c file for the active board configuration.
@@ -26,7 +26,7 @@ SIGNAL(INT6_vect) {
 
 // Get the bit location within the hardware port of the given virtual pin.
 // This comes from the pins_*.c file for the active board configuration.
-// 
+//
 // These perform slightly better as macros compared to inline functions
 //
 #define digitalPinToPort(P) ( pgm_read_byte( digital_pin_to_port_PGM + (P) ) )
@@ -48,7 +48,7 @@ void AVRGPIO::pinMode(uint8_t pin, uint8_t mode) {
     // JWS: can I let the optimizer do this?
     reg = portModeRegister(port);
 
-    if (mode == GPIO_INPUT) {
+    if (mode == HAL_GPIO_INPUT) {
         uint8_t oldSREG = SREG;
                 cli();
         *reg &= ~bit;
@@ -122,7 +122,7 @@ bool AVRGPIO::attach_interrupt(
     if (!((mode == 0)||(mode == 1)||(mode == 2)||(mode==3))) return false;
     if (interrupt_num == 6) {
 	uint8_t oldSREG = SREG;
-	cli();	
+	cli();
         _interrupt_6 = proc;
         /* Set the ISC60 and ICS61 bits in EICRB according to the value
          * of mode. */
@@ -150,7 +150,7 @@ void AVRDigitalSource::mode(uint8_t output) {
     volatile uint8_t* reg;
     reg = portModeRegister(port);
 
-    if (output == GPIO_INPUT) {
+    if (output == HAL_GPIO_INPUT) {
         uint8_t oldSREG = SREG;
                 cli();
         *reg &= ~bit;
@@ -208,7 +208,7 @@ void AVRDigitalSource::toggle() {
 bool AVRGPIO::usb_connected(void)
 {
 #if HAL_GPIO_USB_MUX_PIN != -1
-    pinMode(HAL_GPIO_USB_MUX_PIN, GPIO_INPUT);
+    pinMode(HAL_GPIO_USB_MUX_PIN, HAL_GPIO_INPUT);
     return !read(HAL_GPIO_USB_MUX_PIN);
 #else
     return false;

@@ -87,13 +87,14 @@ bool DataFlash_APM2::_sem_take(uint8_t timeout)
 
 
 // Public Methods //////////////////////////////////////////////////////////////
-void DataFlash_APM2::Init(void)
+void DataFlash_APM2::Init(const struct LogStructure *structure, uint8_t num_types)
 {
+    DataFlash_Class::Init(structure, num_types);
     // init to zero
     df_NumPages = 0;
 
-    hal.gpio->pinMode(DF_RESET, GPIO_OUTPUT);
-    hal.gpio->pinMode(DF_CARDDETECT, GPIO_INPUT);
+    hal.gpio->pinMode(DF_RESET, HAL_GPIO_OUTPUT);
+    hal.gpio->pinMode(DF_CARDDETECT, HAL_GPIO_INPUT);
 
     // Reset the chip
     hal.gpio->write(DF_RESET,0);

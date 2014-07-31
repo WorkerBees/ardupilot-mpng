@@ -23,8 +23,8 @@ extern const AP_HAL::HAL& hal;
 // ITG-3200 14.375 LSB/degree/s
 float AP_InertialSensor_ITG3200::_gyro_scale = 0.0012141421; // ToRad(1/14.375)
 float AP_InertialSensor_ITG3200::_accel_scale_1G = (GRAVITY_MSS / 2730.0f); // 2730 LSB = 1G
-	
-	
+
+
 
 uint8_t AP_InertialSensor_ITG3200::_gyro_data_index[3] = { 1, 2, 0 };
 uint8_t AP_InertialSensor_ITG3200::_accel_data_index[3] = { 4, 5, 6 };
@@ -42,18 +42,15 @@ AP_HAL::Semaphore* AP_InertialSensor_ITG3200::_i2c_sem = NULL;
 
 static volatile uint32_t _ins_timer = 0;
 
-#define BLACK_VORTEX 4
-#define PARIS_V5_OSD 6
-
 AP_InertialSensor_ITG3200::AP_InertialSensor_ITG3200(uint8_t board_type): AP_InertialSensor()
 {
 	_initialised = false;
 	_board_type = board_type;
 
-	if (_board_type == BLACK_VORTEX) {
+	if (_board_type == HAL_BOARD_SUBTYPE_MPNG_BLACK_VORTEX) {
 		_accel_addr = 0x41;
 		_accel_scale_1G = (GRAVITY_MSS / 1024.0f); // BMA280 - 1024 LSB = 1G
-	} else if (_board_type == PARIS_V5_OSD) {
+	} else if (_board_type == HAL_BOARD_SUBTYPE_MPNG_PARIS_V5_OSD) {
 		_accel_addr = 0x18;
 		_gyro_scale = 0.0010642251536551; // ITG3050 - 16.4 LSB/degree/s = ToRad(1/16.4)
 		_accel_scale_1G = (GRAVITY_MSS / 1024.0f); // BMA280 - 1024 LSB = 1G
@@ -130,7 +127,7 @@ bool AP_InertialSensor_ITG3200::update( void )
 {
 	int32_t sum[7];
 	float count_scale;
-	Vector3f accel_scale = _accel_scale.get();
+	Vector3f accel_scale = _accel_scale[0].get();
 
   // wait for at least 1 sample
   if (!wait_for_sample(1000)) {
@@ -153,23 +150,23 @@ bool AP_InertialSensor_ITG3200::update( void )
 
 	count_scale = 1.0f / _num_samples;
 
-	_gyro = Vector3f(_gyro_data_sign[0] * sum[_gyro_data_index[0]],
+	_gyro[0] = Vector3f(_gyro_data_sign[0] * sum[_gyro_data_index[0]],
 					 _gyro_data_sign[1] * sum[_gyro_data_index[1]],
 					 _gyro_data_sign[2] * sum[_gyro_data_index[2]]);
-	_gyro.rotate(_board_orientation);
-	_gyro *= _gyro_scale * count_scale;
-	_gyro -= _gyro_offset;
+	_gyro[0].rotate(_board_orientation);
+	_gyro[0] *= _gyro_scale * count_scale;
+	_gyro[0] -= _gyro_offset[0];
 
-	_accel = Vector3f(_accel_data_sign[0] * sum[_accel_data_index[0]],
+	_accel[0] = Vector3f(_accel_data_sign[0] * sum[_accel_data_index[0]],
 					  _accel_data_sign[1] * sum[_accel_data_index[1]],
 					  _accel_data_sign[2] * sum[_accel_data_index[2]]);
 
-	_accel.rotate(_board_orientation);
-    _accel *= count_scale * _accel_scale_1G;
-    _accel.x *= accel_scale.x;
-    _accel.y *= accel_scale.y;
-    _accel.z *= accel_scale.z;
-	_accel -= _accel_offset;
+	_accel[0].rotate(_board_orientation);
+    _accel[0] *= count_scale * _accel_scale_1G;
+    _accel[0].x *= accel_scale.x;
+    _accel[0].y *= accel_scale.y;
+    _accel[0].z *= accel_scale.z;
+	_accel[0] -= _accel_offset[0];
 
 
     _temp    = _temp_to_celsius(sum[_temp_data_index] * count_scale);
@@ -179,7 +176,7 @@ bool AP_InertialSensor_ITG3200::update( void )
 
 
 // get_delta_time returns the time period in seconds overwhich the sensor data was collected
-float AP_InertialSensor_ITG3200::get_delta_time()
+float AP_InertialSensor_ITG3200::get_delta_time() const
 {
     return _delta_time;
 }
@@ -341,7 +338,7 @@ bool AP_InertialSensor_ITG3200::hardware_init(Sample_rate sample_rate)
 	hal.scheduler->delay(5);
 	hal.i2c->writeRegister(ITG3200_ADDRESS, 0x3E, 0x03);
 	hal.scheduler->delay(10);
-			
+
 	if (_board_type == PARIS_V5_OSD) {
 		hal.i2c->writeRegister(_accel_addr, 0x10, 0x09); // acceleration data filter bandwidth = 15,63Hz
 		hal.scheduler->delay(5);

@@ -42,6 +42,7 @@ HAL_MPNG::HAL_MPNG() :
         &avrUart2Driver, /* phys UART2 -> uartB */
         &avrUart3Driver, /* phys UART3 -> uartC */
         &avrUart1Driver, /* phys UART1 -> uartD */
+        NULL,            /* no uartE */
         &avrI2CDriver,
         &mpngSPIDriver,
         &avrAnalogIn,
@@ -83,7 +84,7 @@ void HAL_MPNG::init(int argc, char * const argv[]) const {
     PORTE |= _BV(0); // S0
     PORTD |= _BV(2); // S1
     PORTH |= _BV(0); // S2
-    PORTJ |= _BV(0); // S3    
+    PORTJ |= _BV(0); // S3
 };
 
 const HAL_MPNG AP_HAL_MPNG;

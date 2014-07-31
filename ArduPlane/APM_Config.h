@@ -1,9 +1,5 @@
 // -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-// Select Megapirate board type:
-#define MPNG_BOARD_TYPE   CRIUS_V1
-
-
 // Turn some things off
 #define CLI_ENABLED ENABLED
 #define MOUNT2 DISABLED
@@ -799,61 +795,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // Dataflash logging control
 //
-// DEFAULT_LOG_BITMASK is a mask of options to turn on, separated by |
-//
-// MASK_LOG_ATTITUDE_FAST                        DEBUG
-// Logs basic attitude info to the dataflash at 50Hz (uses more space).
-//
-// MASK_LOG_ATTITUDE_MED                         OPTIONAL
-// Logs basic attitude info to the dataflash at 10Hz (uses less space than
-// LOG_ATTITUDE_FAST).
-//
-// MASK_LOG_GPS                                  OPTIONAL
-// Logs GPS info to the dataflash at 10Hz.
-//
-// MASK_LOG_PM                                   OPTIONAL
-// Logs INS performance monitoring info every 10 seconds.
-//
-// MASK_LOG_CTUN                                 OPTIONAL
-// Logs control loop tuning info at 10 Hz.  This information is useful for tuning
-// servo control loop gain values.
-//
-// MASK_LOG_NTUN                                 OPTIONAL
-// Logs navigation tuning info at 10 Hz.  This information is useful for tuning
-// navigation control loop gain values.
-//
-// MASK_LOG_ MODE                                OPTIONAL
-// Logs changes to the flight mode upon occurrence.
-//
-// MASK_LOG_IMU                                  DEBUG
-// Logs raw accelerometer and gyro data at 50 Hz (uses more space).
-//
-// MASK_LOG_CMD                                  OPTIONAL
-// Logs new commands when they process.
-//
-// MASK_LOG_CURRENT                              OPTIONAL
-// Logs electrical current at 1Hz
-//
-// MASK_LOG_COMPASS                             OPTIONAL
-// Logs raw compass data at 10Hz
-//
-// MASK_LOG_TECS                                OPTIONAL
-// Logs TECS tuning data at 10Hz
-//
-// MASK_LOG_CAMERA                              OPTIONAL
-// Logs camera events when pictures are taken
-//
 #define LOGGING_ENABLED     ENABLED
-#define DEFAULT_LOG_BITMASK     \
-    MASK_LOG_ATTITUDE_MED | \
-    MASK_LOG_GPS | \
-    MASK_LOG_PM | \
-    MASK_LOG_MODE | \
-    MASK_LOG_CMD | \
-    MASK_LOG_COMPASS | \
-    MASK_LOG_CURRENT | \
-    MASK_LOG_TECS | \
-    MASK_LOG_CAMERA
 
 //////////////////////////////////////////////////////////////////////////////
 // Debugging interface

@@ -25,8 +25,8 @@ public:
     void                 _poll_data(void);
 
     // get_delta_time returns the time period in seconds overwhich the sensor data was collected
-    float            	get_delta_time();
-    
+    float            	get_delta_time() const;
+
     // Init I2C Bypass mode
     void                        hardware_init_i2c_bypass();
 
@@ -49,7 +49,7 @@ private:
 
     static const float          _gyro_scale;
 
-    uint8_t              mpu_addr; 
+    uint8_t              mpu_addr;
 
     // ensure we can't initialise twice
     bool                        _initialised;
@@ -59,7 +59,7 @@ private:
 
     // support for updating filter at runtime
     uint8_t                     _last_filter_hz;
-  
+
     void _set_filter_register(uint8_t filter_hz, uint8_t default_filter);
 
     // accumulation in timer - must be read with timer disabled

@@ -13,21 +13,21 @@ extern const AP_HAL::HAL& hal;
 /* No init argument required */
 void MPNGRCOutput::init(void* machtnichts) {
   // --------------------- TIMER1: CH_10, CH_11 ---------------
-  hal.gpio->pinMode(11,GPIO_OUTPUT); // CH_10 (PB5/OC1A)
-  hal.gpio->pinMode(12,GPIO_OUTPUT); // CH_11 (PB6/OC1B)	
+  hal.gpio->pinMode(11,HAL_GPIO_OUTPUT); // CH_10 (PB5/OC1A)
+  hal.gpio->pinMode(12,HAL_GPIO_OUTPUT); // CH_11 (PB6/OC1B)
   // WGM: 1 1 1 0. Clear Timer on Compare, TOP is ICR1.
   // CS11: prescale by 8 => 0.5us tick
-	TCCR1A = (1<<WGM11); 
+	TCCR1A = (1<<WGM11);
 	TCCR1B = (1<<WGM13)|(1<<WGM12)|(1<<CS11);
-	OCR1A = 0xFFFF; 
-	OCR1B = 0xFFFF; 
+	OCR1A = 0xFFFF;
+	OCR1B = 0xFFFF;
 	ICR1 = 40000; //50hz freq...Datasheet says  (system_freq/prescaler)/target frequency. So (16000000hz/8)/50hz=40000,
 
- 
+
   // --------------------- TIMER3: CH_1, CH_3, and CH_4 ---------------------
-  hal.gpio->pinMode(5,GPIO_OUTPUT); // CH_1 (PE3/OC3A)
-  hal.gpio->pinMode(2,GPIO_OUTPUT); // CH_3 (PE4/OC3B)
-  hal.gpio->pinMode(3,GPIO_OUTPUT); // CH_4 (PE5/OC3C)
+  hal.gpio->pinMode(5,HAL_GPIO_OUTPUT); // CH_1 (PE3/OC3A)
+  hal.gpio->pinMode(2,HAL_GPIO_OUTPUT); // CH_3 (PE4/OC3B)
+  hal.gpio->pinMode(3,HAL_GPIO_OUTPUT); // CH_4 (PE5/OC3C)
 
   // WGM: 1 1 1 0. Clear timer on Compare, TOP is ICR3
   // CS31: prescale by 8 => 0.5us tick
@@ -39,9 +39,9 @@ void MPNGRCOutput::init(void* machtnichts) {
   ICR3 = 40000; // 0.5us tick => 50hz freq
 
   // --------------------- TIMER4: CH_7, CH_8, and CH_11 ---------------------
-  hal.gpio->pinMode(6,GPIO_OUTPUT); // CH_2 (PE3/OC4A)
-  hal.gpio->pinMode(7,GPIO_OUTPUT); // CH_7 (PE4/OC4B)
-  hal.gpio->pinMode(8,GPIO_OUTPUT); // CH_8 (PE5/OC4C)
+  hal.gpio->pinMode(6,HAL_GPIO_OUTPUT); // CH_2 (PE3/OC4A)
+  hal.gpio->pinMode(7,HAL_GPIO_OUTPUT); // CH_7 (PE4/OC4B)
+  hal.gpio->pinMode(8,HAL_GPIO_OUTPUT); // CH_8 (PE5/OC4C)
 
   // WGM: 1 1 1 0. Clear timer on Compare, TOP is ICR3
   // CS31: prescale by 8 => 0.5us tick
@@ -54,8 +54,8 @@ void MPNGRCOutput::init(void* machtnichts) {
 
   // --------------------- TIMER5: CH_5, CH_6 ---------------------
   // Timer5 already initialized in RCInput.cpp
-  hal.gpio->pinMode(44, GPIO_OUTPUT); // CH_5 (PL5/OC5C)
-  hal.gpio->pinMode(45, GPIO_OUTPUT); // CH_6 (PL4/OC5B)
+  hal.gpio->pinMode(44, HAL_GPIO_OUTPUT); // CH_5 (PL5/OC5C)
+  hal.gpio->pinMode(45, HAL_GPIO_OUTPUT); // CH_6 (PL4/OC5B)
 }
 
 /* Output freq (1/period) control */
@@ -169,7 +169,7 @@ void MPNGRCOutput::write(uint8_t ch, uint16_t period_us) {
   /* constrain, then scale from 1us resolution (input units)
    * to 0.5us (timer units) */
   uint16_t pwm = constrain_period(period_us) << 1;
- 
+
 	switch(ch)
 	{
 		case 0:  OCR3A = pwm; break; //5
@@ -187,7 +187,7 @@ void MPNGRCOutput::write(uint8_t ch, uint16_t period_us) {
 
 void MPNGRCOutput::write(uint8_t ch, uint16_t* period_us, uint8_t len) {
     for (int i = 0; i < len; i++) {
-        write(i + ch, period_us[i]); 
+        write(i + ch, period_us[i]);
     }
 }
 

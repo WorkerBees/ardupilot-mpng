@@ -92,11 +92,17 @@ static void init_ardupilot()
 	// on the message set configured.
 	//
     // standard gps running
-    hal.uartB->begin(115200, 256, 16);
+    hal.uartB->begin(38400, 256, 16);
+
+#if GPS2_ENABLE
+    if (hal.uartE != NULL) {
+        hal.uartE->begin(38400, 256, 16);
+    }
+#endif
 
 	cliSerial->printf_P(PSTR("\n\nInit " FIRMWARE_STRING
 						 "\n\nFree RAM: %u\n"),
-                    memcheck_available_memory());
+                        hal.util->available_memory());
                     
 	//
 	// Check the EEPROM format version before loading any parameters from EEPROM.
@@ -104,21 +110,24 @@ static void init_ardupilot()
 	
     load_parameters();
 
+    BoardConfig.init();
+
+    ServoRelayEvents.set_channel_mask(0xFFF0);
+
     set_control_channels();
 
     // after parameter load setup correct baud rate on uartA
-    hal.uartA->begin(map_baudrate(g.serial0_baud, SERIAL0_BAUD));
+    hal.uartA->begin(map_baudrate(g.serial0_baud));
 
     // keep a record of how many resets have happened. This can be
     // used to detect in-flight resets
     g.num_resets.set_and_save(g.num_resets+1);
 
-	// init the GCS
-	gcs0.init(hal.uartA);
+    // init baro before we start the GCS, so that the CLI baro test works
+    barometer.init();
 
-    // Register mavlink_delay_cb, which will run anytime you have
-    // more than 5ms remaining in your call to hal.scheduler->delay
-    hal.scheduler->register_delay_callback(mavlink_delay_cb, 5);
+	// init the GCS
+	gcs[0].init(hal.uartA);
 
     // we start by assuming USB connected, as we initialed the serial
     // port with SERIAL0_BAUD. check_usb_mux() fixes this if need be.    
@@ -126,13 +135,21 @@ static void init_ardupilot()
     check_usb_mux();
 
     // we have a 2nd serial port for telemetry
-    hal.uartC->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 128);
-	gcs3.init(hal.uartC);
+    gcs[1].setup_uart(hal.uartC, map_baudrate(g.serial1_baud), 128, 128);
+
+#if MAVLINK_COMM_NUM_BUFFERS > 2
+    if (g.serial2_protocol == SERIAL2_FRSKY_DPORT || 
+        g.serial2_protocol == SERIAL2_FRSKY_SPORT) {
+        frsky_telemetry.init(hal.uartD, g.serial2_protocol);
+    } else {
+        gcs[2].setup_uart(hal.uartD, map_baudrate(g.serial2_baud), 128, 128);
+    }
+#endif
 
 	mavlink_system.sysid = g.sysid_this_mav;
 
 #if LOGGING_ENABLED == ENABLED
-	DataFlash.Init(); 	// DataFlash log initialization
+	DataFlash.Init(log_structure, sizeof(log_structure)/sizeof(log_structure[0]));
     if (!DataFlash.CardInserted()) {
         gcs_send_text_P(SEVERITY_LOW, PSTR("No dataflash card inserted"));
         g.log_bitmask.set(0);
@@ -145,8 +162,12 @@ static void init_ardupilot()
 	}
 #endif
 
+    // Register mavlink_delay_cb, which will run anytime you have
+    // more than 5ms remaining in your call to hal.scheduler->delay
+    hal.scheduler->register_delay_callback(mavlink_delay_cb, 5);
+
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM1
-    adc.Init();      // APM ADC library initialization
+    apm1_adc.Init();      // APM ADC library initialization
 #endif
 
 	if (g.compass_enabled==true) {
@@ -162,10 +183,11 @@ static void init_ardupilot()
 	// initialise sonar
     init_sonar();
 
+    // and baro for EKF
+    init_barometer();
+
 	// Do GPS init
-	g_gps = &g_gps_driver;
-    // GPS initialisation
-	g_gps->init(hal.uartB, GPS::GPS_ENGINE_AUTOMOTIVE);
+	gps.init(&DataFlash);
 
 	//mavlink_system.sysid = MAV_SYSTEM_ID;				// Using g.sysid_this_mav
 	mavlink_system.compid = 1;	//MAV_COMP_ID_IMU;   // We do not check for comp id
@@ -192,14 +214,18 @@ static void init_ardupilot()
 	//
     const prog_char_t *msg = PSTR("\nPress ENTER 3 times to start interactive setup\n");
     cliSerial->println_P(msg);
-    if (gcs3.initialised) {
+    if (gcs[1].initialised) {
         hal.uartC->println_P(msg);
+    }
+    if (num_gcs > 2 && gcs[2].initialised) {
+        hal.uartD->println_P(msg);
     }
 
 	startup_ground();
 
-	if (g.log_bitmask & MASK_LOG_CMD)
-			Log_Write_Startup(TYPE_GROUNDSTART_MSG);
+	if (should_log(MASK_LOG_CMD)) {
+        Log_Write_Startup(TYPE_GROUNDSTART_MSG);
+    }
 
     set_mode((enum mode)g.initial_mode.get());
 
@@ -232,14 +258,26 @@ static void startup_ground(void)
 	// ---------------------------
 	trim_radio();
 
-	// initialize commands
-	// -------------------
-	init_commands();
+    // initialise mission library
+    mission.init();
 
     hal.uartA->set_blocking_writes(false);
     hal.uartC->set_blocking_writes(false);
 
 	gcs_send_text_P(SEVERITY_LOW,PSTR("\n\n Ready to drive."));
+}
+
+/*
+  set the in_reverse flag
+  reset the throttle integrator if this changes in_reverse
+ */
+static void set_reverse(bool reverse)
+{
+    if (in_reverse == reverse) {
+        return;
+    }
+    g.pidSpeedThrottle.reset_I();    
+    in_reverse = reverse;
 }
 
 static void set_mode(enum mode mode)
@@ -252,7 +290,7 @@ static void set_mode(enum mode mode)
 	control_mode = mode;
     throttle_last = 0;
     throttle = 500;
-    in_reverse = false;
+    set_reverse(false);
     g.pidSpeedThrottle.reset_I();
 
     if (control_mode != AUTO) {
@@ -281,8 +319,9 @@ static void set_mode(enum mode mode)
 			break;
 	}
 
-	if (g.log_bitmask & MASK_LOG_MODE)
+	if (should_log(MASK_LOG_MODE)) {
 		Log_Write_Mode();
+    }
 }
 
 /*
@@ -339,6 +378,7 @@ static void startup_INS_ground(bool force_accel_level)
 
     ahrs.init();
 	ahrs.set_fly_forward(true);
+    ahrs.set_vehicle_class(AHRS_VEHICLE_GROUND);
 
     AP_InertialSensor::Start_style style;
     if (g.skip_gyro_cal && !force_accel_level) {
@@ -369,31 +409,7 @@ static void update_notify()
 static void resetPerfData(void) {
 	mainLoop_count 			= 0;
 	G_Dt_max 				= 0;
-	ahrs.renorm_range_count 	= 0;
-	ahrs.renorm_blowup_count = 0;
-	gps_fix_count 			= 0;
 	perf_mon_timer 			= millis();
-}
-
-
-/*
-  map from a 8 bit EEPROM baud rate to a real baud rate
- */
-static uint32_t map_baudrate(int8_t rate, uint32_t default_baud)
-{
-    switch (rate) {
-    case 1:    return 1200;
-    case 2:    return 2400;
-    case 4:    return 4800;
-    case 9:    return 9600;
-    case 19:   return 19200;
-    case 38:   return 38400;
-    case 57:   return 57600;
-    case 111:  return 111100;
-    case 115:  return 115200;
-    }
-    cliSerial->println_P(PSTR("Invalid SERIAL3_BAUD"));
-    return default_baud;
 }
 
 
@@ -411,23 +427,15 @@ static void check_usb_mux(void)
     // the APM2 has a MUX setup where the first serial port switches
     // between USB and a TTL serial connection. When on USB we use
     // SERIAL0_BAUD, but when connected as a TTL serial port we run it
-    // at SERIAL3_BAUD.
+    // at SERIAL1_BAUD.
     if (usb_connected) {
         hal.uartA->begin(SERIAL0_BAUD);
     } else {
-        hal.uartA->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD));
+        hal.uartA->begin(map_baudrate(g.serial1_baud));
     }
 #endif
 }
 
-
-/*
- * Read board voltage in millivolts
- */
-uint16_t board_voltage(void)
-{
-    return vcc_pin->voltage_latest() * 1000;
-}
 
 static void
 print_mode(AP_HAL::BetterStream *port, uint8_t mode)
@@ -443,7 +451,7 @@ print_mode(AP_HAL::BetterStream *port, uint8_t mode)
         port->print_P(PSTR("Learning"));
         break;
     case STEERING:
-        port->print_P(PSTR("Stearing"));
+        port->print_P(PSTR("Steering"));
         break;
     case AUTO:
         port->print_P(PSTR("AUTO"));
@@ -467,7 +475,7 @@ static uint8_t check_digital_pin(uint8_t pin)
         return 0;
     }
     // ensure we are in input mode
-    hal.gpio->pinMode(dpin, GPIO_INPUT);
+    hal.gpio->pinMode(dpin, HAL_GPIO_INPUT);
 
     // enable pullup
     hal.gpio->write(dpin, 1);
@@ -487,5 +495,35 @@ static void servo_write(uint8_t ch, uint16_t pwm)
 #else
     hal.rcout->enable_ch(ch);
     hal.rcout->write(ch, pwm);
+#endif
+}
+
+/*
+  should we log a message type now?
+ */
+static bool should_log(uint32_t mask)
+{
+    if (!(mask & g.log_bitmask) || in_mavlink_delay) {
+        return false;
+    }
+    bool ret = ahrs.get_armed() || (g.log_bitmask & MASK_LOG_WHEN_DISARMED) != 0;
+    if (ret && !DataFlash.logging_started() && !in_log_download) {
+        // we have to set in_mavlink_delay to prevent logging while
+        // writing headers
+        in_mavlink_delay = true;
+        start_logging();
+        in_mavlink_delay = false;
+    }
+    return ret;
+}
+
+/*
+  send FrSky telemetry. Should be called at 5Hz by scheduler
+ */
+static void telemetry_send(void)
+{
+#if FRSKY_TELEM_ENABLED == ENABLED
+    frsky_telemetry.send_frames((uint8_t)control_mode, 
+                                (AP_Frsky_Telem::FrSkyProtocol)g.serial2_protocol.get());
 #endif
 }

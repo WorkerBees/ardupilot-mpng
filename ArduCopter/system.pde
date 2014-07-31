@@ -89,10 +89,10 @@ static void init_ardupilot()
     //
 #if HIL_MODE != HIL_MODE_DISABLED
     // we need more memory for HIL, as we get a much higher packet rate
-    hal.uartA->begin(SERIAL0_BAUD, 256, 256);
+    hal.uartA->begin(map_baudrate(g.serial0_baud), 256, 256);
 #else
     // use a bit less for non-HIL operation
-    hal.uartA->begin(SERIAL0_BAUD, 512, 128);
+    hal.uartA->begin(map_baudrate(g.serial0_baud), 512, 128);
 #endif
 
     // GPS serial port.
@@ -100,12 +100,18 @@ static void init_ardupilot()
 #if GPS_PROTOCOL != GPS_PROTOCOL_IMU
     // standard gps running. Note that we need a 256 byte buffer for some
     // GPS types (eg. UBLOX)
-    hal.uartB->begin(SERIAL2_BAUD, 256, 16);
+    hal.uartB->begin(38400, 256, 16);
+#endif
+
+#if GPS2_ENABLE
+    if (hal.uartE != NULL) {
+        hal.uartE->begin(38400, 256, 16);
+    }
 #endif
 
     cliSerial->printf_P(PSTR("\n\nInit " FIRMWARE_STRING
-                             "\n\nFree RAM: %u\nBoard Type: %d\n" ),
-                        (unsigned) memcheck_available_memory(), MPNG_BOARD_TYPE); 
+                         "\n\nFree RAM: %u\n"),
+                        hal.util->available_memory());
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_APM2
     /*
@@ -120,27 +126,29 @@ static void init_ardupilot()
     //
     report_version();
 
-    relay.init();
-
-#if COPTER_LEDS == ENABLED
-    copter_leds_init();
-#endif
-
-/*		hal.gpio->pinMode(46, GPIO_OUTPUT); // Debug output
-		hal.gpio->write(46,0); 
-		while (true) {
-			hal.gpio->write(46,1);
-			hal.scheduler->delay(100);
-			hal.gpio->write(46,0);
-			hal.scheduler->delay(100);
-		}*/
-
     // load parameters from EEPROM
     load_parameters();
 
-#if HIL_MODE != HIL_MODE_ATTITUDE
-    barometer.init();
+    BoardConfig.init();
+
+    bool enable_external_leds = true;
+
+    // init EPM cargo gripper
+#if EPM_ENABLED == ENABLED
+    epm.init();
+    enable_external_leds = !epm.enabled();
 #endif
+
+    // initialise notify system
+    // disable external leds if epm is enabled because of pin conflict on the APM
+    notify.init(enable_external_leds);
+
+    // initialise battery monitor
+    battery.init();
+    
+    rssi_analog_source      = hal.analogin->channel(g.rssi_pin);
+
+    barometer.init();
 
     // init the GCS
     gcs[0].init(hal.uartA);
@@ -159,8 +167,7 @@ static void init_ardupilot()
     // we have a 2nd serial port for telemetry on all boards except
     // APM2. We actually do have one on APM2 but it isn't necessary as
     // a MUX is used
-    hal.uartC->begin(map_baudrate(g.serial1_baud, SERIAL1_BAUD), 128, 128);
-    gcs[1].init(hal.uartC);
+    gcs[1].setup_uart(hal.uartC, map_baudrate(g.serial1_baud), 128, 128);
 #endif
 #if MAVLINK_COMM_NUM_BUFFERS > 2
     if (hal.uartD != NULL) {
@@ -169,12 +176,21 @@ static void init_ardupilot()
     }
 #endif
 
+#if MAVLINK_COMM_NUM_BUFFERS > 2
+    if (g.serial2_protocol == SERIAL2_FRSKY_DPORT || 
+        g.serial2_protocol == SERIAL2_FRSKY_SPORT) {
+        frsky_telemetry.init(hal.uartD, g.serial2_protocol);
+    } else {
+        gcs[2].setup_uart(hal.uartD, map_baudrate(g.serial2_baud), 128, 128);
+    }
+#endif
+
     // identify ourselves correctly with the ground station
     mavlink_system.sysid = g.sysid_this_mav;
     mavlink_system.type = 2; //MAV_QUADROTOR;
 
 #if LOGGING_ENABLED == ENABLED
-    DataFlash.Init();
+    DataFlash.Init(log_structure, sizeof(log_structure)/sizeof(log_structure[0]));
     if (!DataFlash.CardInserted()) {
         gcs_send_text_P(SEVERITY_LOW, PSTR("No dataflash inserted"));
         g.log_bitmask.set(0);
@@ -188,24 +204,24 @@ static void init_ardupilot()
     init_rc_in();               // sets up rc channels from radio
     init_rc_out();              // sets up motors and output to escs
 
-    cliSerial->println_P(PSTR(BOOTLOADER_BUGFIX)); 
+    // initialise which outputs Servo and Relay events can use
+    ServoRelayEvents.set_channel_mask(~motors.get_motor_mask());
+
+    relay.init();
+
     /*
      *  setup the 'main loop is dead' check. Note that this relies on
      *  the RC library being initialised.
      */
     hal.scheduler->register_timer_failsafe(failsafe_check, 1000);
 
-#if HIL_MODE != HIL_MODE_ATTITUDE
  #if CONFIG_ADC == ENABLED
     // begin filtering the ADC Gyros
-    adc.Init();           // APM ADC library initialization
+    apm1_adc.Init();           // APM ADC library initialization
  #endif // CONFIG_ADC
-#endif // HIL_MODE
 
     // Do GPS init
-    g_gps = &g_gps_driver;
-    // GPS Initialization
-    g_gps->init(hal.uartB, GPS::GPS_ENGINE_AIRBORNE_1G);
+    gps.init(&DataFlash);
 
     if(g.compass_enabled) {
 			#if CONFIG_IMU_TYPE == CONFIG_IMU_MPU6000_I2C && HIL_MODE == HIL_MODE_DISABLED
@@ -213,6 +229,10 @@ static void init_ardupilot()
     	#endif
         init_compass();
     }
+
+    // initialise attitude and position controllers
+    attitude_control.set_dt(MAIN_LOOP_SECONDS);
+    pos_control.set_dt(MAIN_LOOP_SECONDS);
 
     // init the optical flow sensor
     if(g.optflow_enabled) {
@@ -246,20 +266,17 @@ static void init_ardupilot()
     }
 #endif
 
-#if HIL_MODE != HIL_MODE_ATTITUDE
     // read Baro pressure at ground
     //-----------------------------
-    init_barometer();
-#endif
+    init_barometer(true);
 
     // initialise sonar
 #if CONFIG_SONAR == ENABLED
     init_sonar();
 #endif
 
-    // initialize commands
-    // -------------------
-    init_commands();
+    // initialise mission library
+    mission.init();
 
     // initialise the flight mode and aux switch
     // ---------------------------
@@ -277,6 +294,15 @@ static void init_ardupilot()
     Log_Write_Startup();
 #endif
 
+    // we don't want writes to the serial port to cause us to pause
+    // mid-flight, so set the serial ports non-blocking once we are
+    // ready to fly
+    hal.uartA->set_blocking_writes(false);
+    hal.uartC->set_blocking_writes(false);
+    if (hal.uartD != NULL) {
+        hal.uartD->set_blocking_writes(false);
+    }
+
     cliSerial->print_P(PSTR("\nReady to FLY "));
 }
 
@@ -290,6 +316,7 @@ static void startup_ground(bool force_gyro_cal)
 
     // initialise ahrs (may push imu calibration into the mpu6000 if using that device).
     ahrs.init();
+    ahrs.set_vehicle_class(AHRS_VEHICLE_COPTER);
 
     // Warm up and read Gyro offsets
     // -----------------------------
@@ -309,193 +336,13 @@ static void startup_ground(bool force_gyro_cal)
 // returns true if the GPS is ok and home position is set
 static bool GPS_ok()
 {
-    if (g_gps != NULL && ap.home_is_set && g_gps->status() == GPS::GPS_OK_FIX_3D && !gps_glitch.glitching() && !failsafe.gps) {
+    if (ap.home_is_set && gps.status() >= AP_GPS::GPS_OK_FIX_3D && 
+        !gps_glitch.glitching() && !failsafe.gps &&
+        !ekf_check_state.bad_compass && !failsafe.ekf) {
         return true;
     }else{
         return false;
     }
-}
-
-// returns true or false whether mode requires GPS
-static bool mode_requires_GPS(uint8_t mode) {
-    switch(mode) {
-        case AUTO:
-        case GUIDED:
-        case LOITER:
-        case RTL:
-        case CIRCLE:
-        case POSITION:
-        case DRIFT:
-            return true;
-        default:
-            return false;
-    }
-
-    return false;
-}
-
-// manual_flight_mode - returns true if flight mode is completely manual (i.e. roll, pitch and yaw controlled by pilot)
-static bool manual_flight_mode(uint8_t mode) {
-    switch(mode) {
-        case ACRO:
-        case STABILIZE:
-        case DRIFT:
-        case SPORT:
-            return true;
-        default:
-            return false;
-    }
-
-    return false;
-}
-
-// set_mode - change flight mode and perform any necessary initialisation
-// optional force parameter used to force the flight mode change (used only first time mode is set)
-// returns true if mode was succesfully set
-// ACRO, STABILIZE, ALTHOLD, LAND, DRIFT and SPORT can always be set successfully but the return state of other flight modes should be checked and the caller should deal with failures appropriately
-static bool set_mode(uint8_t mode)
-{
-    // boolean to record if flight mode could be set
-    bool success = false;
-    bool ignore_checks = !motors.armed();   // allow switching to any mode if disarmed.  We rely on the arming check to perform
-
-    // return immediately if we are already in the desired mode
-    if (mode == control_mode) {
-        return true;
-    }
-
-    switch(mode) {
-        case ACRO:
-            success = true;
-            set_yaw_mode(ACRO_YAW);
-            set_roll_pitch_mode(ACRO_RP);
-            set_throttle_mode(ACRO_THR);
-            set_nav_mode(NAV_NONE);
-            break;
-
-        case STABILIZE:
-            success = true;
-            set_yaw_mode(STABILIZE_YAW);
-            set_roll_pitch_mode(STABILIZE_RP);
-            set_throttle_mode(STABILIZE_THR);
-            set_nav_mode(NAV_NONE);
-            break;
-
-        case ALT_HOLD:
-            success = true;
-            set_yaw_mode(ALT_HOLD_YAW);
-            set_roll_pitch_mode(ALT_HOLD_RP);
-            set_throttle_mode(ALT_HOLD_THR);
-            set_nav_mode(NAV_NONE);
-            break;
-
-        case AUTO:
-            // check we have a GPS and at least one mission command (note the home position is always command 0)
-            if ((GPS_ok() && g.command_total > 1) || ignore_checks) {
-                success = true;
-                // roll-pitch, throttle and yaw modes will all be set by the first nav command
-                init_commands();            // clear the command queues. will be reloaded when "run_autopilot" calls "update_commands" function
-            }
-            break;
-
-        case CIRCLE:
-            if (GPS_ok() || ignore_checks) {
-                success = true;
-                set_roll_pitch_mode(CIRCLE_RP);
-                set_throttle_mode(CIRCLE_THR);
-                set_nav_mode(CIRCLE_NAV);
-                set_yaw_mode(CIRCLE_YAW);
-            }
-            break;
-
-        case LOITER:
-            if (GPS_ok() || ignore_checks) {
-                success = true;
-                set_yaw_mode(LOITER_YAW);
-                set_roll_pitch_mode(LOITER_RP);
-                set_throttle_mode(LOITER_THR);
-                set_nav_mode(LOITER_NAV);
-            }
-            break;
-
-        case POSITION:
-            if (GPS_ok() || ignore_checks) {
-                success = true;
-                set_yaw_mode(POSITION_YAW);
-                set_roll_pitch_mode(POSITION_RP);
-                set_throttle_mode(POSITION_THR);
-                set_nav_mode(POSITION_NAV);
-            }
-            break;
-
-        case GUIDED:
-            if (GPS_ok() || ignore_checks) {
-                success = true;
-                set_yaw_mode(get_wp_yaw_mode(false));
-                set_roll_pitch_mode(GUIDED_RP);
-                set_throttle_mode(GUIDED_THR);
-                set_nav_mode(GUIDED_NAV);
-            }
-            break;
-
-        case LAND:
-            success = true;
-            do_land(NULL);  // land at current location
-            break;
-
-        case RTL:
-            if (GPS_ok() || ignore_checks) {
-                success = true;
-                do_RTL();
-            }
-            break;
-
-        case OF_LOITER:
-            if (g.optflow_enabled || ignore_checks) {
-                success = true;
-                set_yaw_mode(OF_LOITER_YAW);
-                set_roll_pitch_mode(OF_LOITER_RP);
-                set_throttle_mode(OF_LOITER_THR);
-                set_nav_mode(OF_LOITER_NAV);
-            }
-            break;
-
-        case DRIFT:
-            success = true;
-            set_yaw_mode(YAW_DRIFT);
-            set_roll_pitch_mode(ROLL_PITCH_DRIFT);
-            set_nav_mode(NAV_NONE);
-            set_throttle_mode(DRIFT_THR);
-            break;
-
-        case SPORT:
-            success = true;
-            set_yaw_mode(SPORT_YAW);
-            set_roll_pitch_mode(SPORT_RP);
-            set_throttle_mode(SPORT_THR);
-            set_nav_mode(NAV_NONE);
-            // reset acro angle targets to current attitude
-            acro_roll = ahrs.roll_sensor;
-            acro_pitch = ahrs.pitch_sensor;
-            nav_yaw = ahrs.yaw_sensor;
-            break;
-
-        default:
-            success = false;
-            break;
-    }
-
-    // update flight mode
-    if (success) {
-        control_mode = mode;
-        Log_Write_Mode(control_mode);
-    }else{
-        // Log error that we failed to enter desired flight mode
-        Log_Write_Error(ERROR_SUBSYSTEM_FLIGHT_MODE,mode);
-    }
-
-    // return success or failure
-    return success;
 }
 
 // update_auto_armed - update status of auto_armed flag
@@ -529,26 +376,6 @@ static void update_auto_armed()
     }
 }
 
-/*
- *  map from a 8 bit EEPROM baud rate to a real baud rate
- */
-static uint32_t map_baudrate(int8_t rate, uint32_t default_baud)
-{
-    switch (rate) {
-    case 1:    return 1200;
-    case 2:    return 2400;
-    case 4:    return 4800;
-    case 9:    return 9600;
-    case 19:   return 19200;
-    case 38:   return 38400;
-    case 57:   return 57600;
-    case 111:  return 111100;
-    case 115:  return 115200;
-    }
-    //cliSerial->println_P(PSTR("Invalid baudrate"));
-    return default_baud;
-}
-
 static void check_usb_mux(void)
 {
     bool usb_check = hal.gpio->usb_connected();
@@ -565,69 +392,20 @@ static void check_usb_mux(void)
     // SERIAL0_BAUD, but when connected as a TTL serial port we run it
     // at SERIAL1_BAUD.
     if (ap.usb_connected) {
-        hal.uartA->begin(SERIAL0_BAUD);
+        hal.uartA->begin(map_baudrate(g.serial0_baud));
     } else {
-        hal.uartA->begin(map_baudrate(g.serial1_baud, SERIAL1_BAUD));
+        hal.uartA->begin(map_baudrate(g.serial1_baud));
     }
 #endif
 }
 
 /*
- * Read Vcc vs 1.1v internal reference
+  send FrSky telemetry. Should be called at 5Hz by scheduler
  */
-uint16_t board_voltage(void)
+static void telemetry_send(void)
 {
-    return board_vcc_analog_source->voltage_latest() * 1000;
-}
-
-//
-// print_flight_mode - prints flight mode to serial port.
-//
-static void
-print_flight_mode(AP_HAL::BetterStream *port, uint8_t mode)
-{
-    switch (mode) {
-    case STABILIZE:
-        port->print_P(PSTR("STABILIZE"));
-        break;
-    case ACRO:
-        port->print_P(PSTR("ACRO"));
-        break;
-    case ALT_HOLD:
-        port->print_P(PSTR("ALT_HOLD"));
-        break;
-    case AUTO:
-        port->print_P(PSTR("AUTO"));
-        break;
-    case GUIDED:
-        port->print_P(PSTR("GUIDED"));
-        break;
-    case LOITER:
-        port->print_P(PSTR("LOITER"));
-        break;
-    case RTL:
-        port->print_P(PSTR("RTL"));
-        break;
-    case CIRCLE:
-        port->print_P(PSTR("CIRCLE"));
-        break;
-    case POSITION:
-        port->print_P(PSTR("POSITION"));
-        break;
-    case LAND:
-        port->print_P(PSTR("LAND"));
-        break;
-    case OF_LOITER:
-        port->print_P(PSTR("OF_LOITER"));
-        break;
-    case DRIFT:
-        port->print_P(PSTR("DRIFT"));
-        break;
-    case SPORT:
-        port->print_P(PSTR("SPORT"));
-        break;
-    default:
-        port->printf_P(PSTR("Mode(%u)"), (unsigned)mode);
-        break;
-    }
+#if FRSKY_TELEM_ENABLED == ENABLED
+    frsky_telemetry.send_frames((uint8_t)control_mode, 
+                                (AP_Frsky_Telem::FrSkyProtocol)g.serial2_protocol.get());
+#endif
 }

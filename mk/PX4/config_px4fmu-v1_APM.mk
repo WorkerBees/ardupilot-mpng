@@ -27,6 +27,7 @@ MODULES		+= drivers/mpu6000
 MODULES		+= drivers/hmc5883
 MODULES		+= drivers/ms5611
 MODULES		+= drivers/mb12xx
+MODULES		+= drivers/ll40ls
 MODULES		+= drivers/gps
 #MODULES		+= drivers/hil
 #MODULES		+= drivers/hott_telemetry
@@ -40,7 +41,7 @@ MODULES		+= drivers/mkblctrl
 #
 # System commands
 #
-MODULES		+= systemcmds/eeprom
+MODULES		+= systemcmds/mtd
 MODULES		+= systemcmds/bl_update
 MODULES		+= systemcmds/boardinfo
 MODULES		+= systemcmds/i2c
@@ -62,6 +63,7 @@ MODULES		+= modules/uORB
 MODULES		+= lib/mathlib/math/filter
 MODULES	        += modules/libtomfastmath
 MODULES         += modules/libtomcrypt
+MODULES		+= lib/conversion
 
 #
 # Transitional support - add commands from the NuttX export archive.

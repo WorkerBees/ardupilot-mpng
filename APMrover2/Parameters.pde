@@ -1,12 +1,13 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 /*
-  ArduPlane parameter definitions
+  APMRover2 parameter definitions
 */
 
 #define GSCALAR(v, name, def) { g.v.vtype, name, Parameters::k_param_ ## v, &g.v, {def_value:def} }
 #define GGROUP(v, name, class) { AP_PARAM_GROUP, name, Parameters::k_param_ ## v, &g.v, {group_info:class::var_info} }
 #define GOBJECT(v, name, class) { AP_PARAM_GROUP, name, Parameters::k_param_ ## v, &v, {group_info:class::var_info} }
+#define GOBJECTN(v, pname, name, class) { AP_PARAM_GROUP, name, Parameters::k_param_ ## pname, &v, {group_info : class::var_info} }
 
 const AP_Param::Info var_info[] PROGMEM = {
 	GSCALAR(format_version,         "FORMAT_VERSION",   1),
@@ -37,35 +38,57 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Param: RSSI_PIN
     // @DisplayName: Receiver RSSI sensing pin
     // @Description: This selects an analog pin for the receiver RSSI voltage. It assumes the voltage is 5V for max rssi, 0V for minimum
-    // @Values: -1:Disabled, 0:A0, 1:A1, 13:A13
+    // @Values: -1:Disabled, 0:APM2 A0, 1:APM2 A1, 2:APM2 A2, 13:APM2 A13, 103:Pixhawk SBUS
     // @User: Standard
     GSCALAR(rssi_pin,            "RSSI_PIN",         -1),
 
     // @Param: SYSID_THIS_MAV
     // @DisplayName: MAVLink system ID
     // @Description: ID used in MAVLink protocol to identify this vehicle
+    // @Range: 1 255
     // @User: Advanced
 	GSCALAR(sysid_this_mav,         "SYSID_THISMAV",    MAV_SYSTEM_ID),
 
     // @Param: SYSID_MYGCS
     // @DisplayName: MAVLink ground station ID
     // @Description: ID used in MAVLink protocol to identify the controlling ground station
+    // @Range: 1 255
     // @User: Advanced
 	GSCALAR(sysid_my_gcs,           "SYSID_MYGCS",      255),
 
     // @Param: SERIAL0_BAUD
     // @DisplayName: USB Console Baud Rate
-    // @Description: The baud rate used on the first serial port
-    // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200
+    // @Description: The baud rate used on the USB console. The APM2 can support all baudrates up to 115, and also can support 500. The PX4 can support rates of up to 1500. If you setup a rate you cannot support on APM2 and then can't connect to your board you should load a firmware from a different vehicle type. That will reset all your parameters to defaults.
+    // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200,500:500000,921:921600,1500:1500000
     // @User: Standard
-	GSCALAR(serial0_baud,           "SERIAL0_BAUD",     SERIAL0_BAUD/1000),
+    GSCALAR(serial0_baud,           "SERIAL0_BAUD",   SERIAL0_BAUD/1000),
 
-    // @Param: SERIAL3_BAUD
+    // @Param: SERIAL1_BAUD
     // @DisplayName: Telemetry Baud Rate
-    // @Description: The baud rate used on the telemetry port
-    // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200
+    // @Description: The baud rate used on the first telemetry port. The APM2 can support all baudrates up to 115, and also can support 500. The PX4 can support rates of up to 1500. If you setup a rate you cannot support on APM2 and then can't connect to your board you should load a firmware from a different vehicle type. That will reset all your parameters to defaults.
+    // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200,500:500000,921:921600,1500:1500000
     // @User: Standard
-	GSCALAR(serial3_baud,           "SERIAL3_BAUD",     SERIAL3_BAUD/1000),
+    GSCALAR(serial1_baud,           "SERIAL1_BAUD",   SERIAL1_BAUD/1000),
+
+#if MAVLINK_COMM_NUM_BUFFERS > 2
+    // @Param: SERIAL2_BAUD
+    // @DisplayName: Telemetry Baud Rate
+    // @Description: The baud rate used on the second telemetry port. The APM2 can support all baudrates up to 115, and also can support 500. The PX4 can support rates of up to 1500. If you setup a rate you cannot support on APM2 and then can't connect to your board you should load a firmware from a different vehicle type. That will reset all your parameters to defaults.
+    // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200,500:500000,921:921600,1500:1500000
+    // @User: Standard
+    GSCALAR(serial2_baud,           "SERIAL2_BAUD",   SERIAL2_BAUD/1000),
+
+#if FRSKY_TELEM_ENABLED == ENABLED
+    // @Param: SERIAL2_PROTOCOL
+    // @DisplayName: SERIAL2 protocol selection
+    // @Description: Control what protocol telemetry 2 port should be used for
+    // @Values: 1:GCS Mavlink,2:Frsky D-PORT
+    // @User: Standard
+    GSCALAR(serial2_protocol,        "SERIAL2_PROTOCOL", SERIAL2_MAVLINK),
+#endif // FRSKY_TELEM_ENABLED
+
+#endif // MAVLINK_COMM_NUM_BUFFERS
+
 
     // @Param: TELEM_DELAY
     // @DisplayName: Telemetry startup delay 
@@ -133,6 +156,33 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Standard
 	GSCALAR(speed_turn_dist,    "SPEED_TURN_DIST",  2.0f),
 
+    // @Param: BRAKING_PERCENT
+    // @DisplayName: Percentage braking to apply
+    // @Description: The maximum reverse throttle braking percentage to apply when cornering
+    // @Units: percent
+    // @Range: 0 100
+    // @Increment: 1
+    // @User: Standard
+	GSCALAR(braking_percent,    "BRAKING_PERCENT",  0),
+
+    // @Param: BRAKING_SPEEDERR
+    // @DisplayName: Speed error at which to apply braking
+    // @Description: The amount of overspeed error at which to start applying braking
+    // @Units: m/s
+    // @Range: 0 100
+    // @Increment: 1
+    // @User: Standard
+	GSCALAR(braking_speederr,   "BRAKING_SPEEDERR",  3),
+
+    // @Param: PIVOT_TURN_ANGLE
+    // @DisplayName: Pivot turn angle
+    // @Description: Navigation angle threshold in degrees to switch to pivot steering when SKID_STEER_OUT is 1. This allows you to setup a skid steering rover to turn on the spot in auto mode when the angle it needs to turn it greater than this angle. An angle of zero means to disable pivot turning. Note that you will probably also want to set a low value for WP_RADIUS to get neat turns.
+    // @Units: degrees
+    // @Range: 0 360
+    // @Increment: 1
+    // @User: Standard
+	GSCALAR(pivot_turn_angle,   "PIVOT_TURN_ANGLE",  30),
+
     // @Param: CH7_OPTION
     // @DisplayName: Channel 7 option
     // @Description: What to do use channel 7 for
@@ -153,32 +203,32 @@ const AP_Param::Info var_info[] PROGMEM = {
 	GGROUP(rc_3,                    "RC3_", RC_Channel),
 
     // @Group: RC4_
-    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
 	GGROUP(rc_4,                    "RC4_", RC_Channel_aux),
 
     // @Group: RC5_
-    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
 	GGROUP(rc_5,                    "RC5_", RC_Channel_aux),
 
     // @Group: RC6_
-    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
 	GGROUP(rc_6,                    "RC6_", RC_Channel_aux),
 
     // @Group: RC7_
-    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
 	GGROUP(rc_7,                    "RC7_", RC_Channel_aux),
 
     // @Group: RC8_
-    // @Path: ../libraries/RC_Channel/RC_Channel.cpp
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
 	GGROUP(rc_8,                    "RC8_", RC_Channel_aux),
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
     // @Group: RC9_
     // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
     GGROUP(rc_9,                    "RC9_", RC_Channel_aux),
 #endif
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_PX4
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
     // @Group: RC10_
     // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
     GGROUP(rc_10,                    "RC10_", RC_Channel_aux),
@@ -188,10 +238,18 @@ const AP_Param::Info var_info[] PROGMEM = {
     GGROUP(rc_11,                    "RC11_", RC_Channel_aux),
 #endif
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
+#if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
     // @Group: RC12_
     // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
     GGROUP(rc_12,                    "RC12_", RC_Channel_aux),
+
+    // @Group: RC13_
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
+    GGROUP(rc_13,                    "RC13_", RC_Channel_aux),
+
+    // @Group: RC14_
+    // @Path: ../libraries/RC_Channel/RC_Channel.cpp,../libraries/RC_Channel/RC_Channel_aux.cpp
+    GGROUP(rc_14,                    "RC14_", RC_Channel_aux),
 #endif
 
     // @Param: THR_MIN
@@ -223,12 +281,12 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Param: THR_SLEWRATE
     // @DisplayName: Throttle slew rate
-    // @Description: maximum percentage change in throttle per second. A setting of 10 means to not change the throttle by more than 10% of the full throttle range in one second. A value of zero means no limit.
+    // @Description: maximum percentage change in throttle per second. A setting of 10 means to not change the throttle by more than 10% of the full throttle range in one second. A value of zero means no limit. A value of 100 means the throttle can change over its full range in one second. Note that for some NiMH powered rovers setting a lower value like 40 or 50 may be worthwhile as the sudden current demand on the battery of a big rise in throttle may cause a brownout.
     // @Units: Percent
     // @Range: 0 100
     // @Increment: 1
     // @User: Standard
-	GSCALAR(throttle_slewrate,      "THR_SLEWRATE",     0),
+	GSCALAR(throttle_slewrate,      "THR_SLEWRATE",     100),
 
     // @Param: SKID_STEER_OUT
     // @DisplayName: Skid steering output
@@ -280,40 +338,40 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Standard
 	GSCALAR(fs_gcs_enabled, "FS_GCS_ENABLE",   0),
 
-	// @Param: SONAR_TRIGGER_CM
-	// @DisplayName: Sonar trigger distance
-	// @Description: The distance from an obstacle in centimeters at which the sonar triggers a turn to avoid the obstacle
+	// @Param: RNGFND_TRIGGR_CM
+	// @DisplayName: Rangefinder trigger distance
+	// @Description: The distance from an obstacle in centimeters at which the rangefinder triggers a turn to avoid the obstacle
 	// @Units: centimeters
     // @Range: 0 1000
     // @Increment: 1
 	// @User: Standard
-	GSCALAR(sonar_trigger_cm,   "SONAR_TRIGGER_CM",    100),
+	GSCALAR(sonar_trigger_cm,   "RNGFND_TRIGGR_CM",    100),
 
-	// @Param: SONAR_TURN_ANGLE
-	// @DisplayName: Sonar trigger angle
-	// @Description: The course deviation in degrees to apply while avoiding an obstacle detected with the sonar. A positive number means to turn right, and a negative angle means to turn left.
+	// @Param: RNGFND_TURN_ANGL
+	// @DisplayName: Rangefinder trigger angle
+	// @Description: The course deviation in degrees to apply while avoiding an obstacle detected with the rangefinder. A positive number means to turn right, and a negative angle means to turn left.
 	// @Units: centimeters
     // @Range: -45 45
     // @Increment: 1
 	// @User: Standard
-	GSCALAR(sonar_turn_angle,   "SONAR_TURN_ANGLE",    45),
+	GSCALAR(sonar_turn_angle,   "RNGFND_TURN_ANGL",    45),
 
-	// @Param: SONAR_TURN_TIME
-	// @DisplayName: Sonar turn time
-	// @Description: The amount of time in seconds to apply the SONAR_TURN_ANGLE after detecting an obstacle.
+	// @Param: RNGFND_TURN_TIME
+	// @DisplayName: Rangefinder turn time
+	// @Description: The amount of time in seconds to apply the RNGFND_TURN_ANGL after detecting an obstacle.
 	// @Units: seconds
     // @Range: 0 100
     // @Increment: 0.1
 	// @User: Standard
-	GSCALAR(sonar_turn_time,    "SONAR_TURN_TIME",     1.0f),
+	GSCALAR(sonar_turn_time,    "RNGFND_TURN_TIME",     1.0f),
 
-	// @Param: SONAR_DEBOUNCE
-	// @DisplayName: Sonar debounce count
-	// @Description: The number of 50Hz sonar hits needed to trigger an obstacle avoidance event. If you get a lot of false sonar events then raise this number, but if you make it too large then it will cause lag in detecting obstacles, which could cause you go hit the obstacle.
+	// @Param: RNGFND_DEBOUNCE
+	// @DisplayName: Rangefinder debounce count
+	// @Description: The number of 50Hz rangefinder hits needed to trigger an obstacle avoidance event. If you get a lot of false sonar events then raise this number, but if you make it too large then it will cause lag in detecting obstacles, which could cause you go hit the obstacle.
     // @Range: 1 100
     // @Increment: 1
 	// @User: Standard
-	GSCALAR(sonar_debounce,   "SONAR_DEBOUNCE",    2),
+	GSCALAR(sonar_debounce,   "RNGFND_DEBOUNCE",    2),
 
     // @Param: LEARN_CH
     // @DisplayName: Learning channel
@@ -369,9 +427,6 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @User: Standard
 	GSCALAR(mode6,           "MODE6",         MODE_6),
 
-	GSCALAR(command_total,          "CMD_TOTAL",        0),
-	GSCALAR(command_index,          "CMD_INDEX",        0),
-
     // @Param: WP_RADIUS
     // @DisplayName: Waypoint radius
     // @Description: The distance in meters from a waypoint when we consider the waypoint has been reached. This determines when the rover will turn along the next waypoint path.
@@ -406,6 +461,12 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Path: ../libraries/AP_Scheduler/AP_Scheduler.cpp
     GOBJECT(scheduler, "SCHED_", AP_Scheduler),
 
+    // barometer ground calibration. The GND_ prefix is chosen for
+    // compatibility with previous releases of ArduPlane
+    // @Group: GND_
+    // @Path: ../libraries/AP_Baro/AP_Baro.cpp
+    GOBJECT(barometer, "GND_", AP_Baro),
+
     // @Group: RELAY_
     // @Path: ../libraries/AP_Relay/AP_Relay.cpp
     GOBJECT(relay,                  "RELAY_", AP_Relay),
@@ -416,23 +477,25 @@ const AP_Param::Info var_info[] PROGMEM = {
 
     // @Group: SR0_
     // @Path: GCS_Mavlink.pde
-	GOBJECT(gcs0,					"SR0_",     GCS_MAVLINK),
+    GOBJECTN(gcs[0], gcs0,        "SR0_",     GCS_MAVLINK),
 
-    // @Group: SR3_
+    // @Group: SR1_
     // @Path: GCS_Mavlink.pde
-	GOBJECT(gcs3,					"SR3_",     GCS_MAVLINK),
+    GOBJECTN(gcs[1],  gcs1,       "SR1_",     GCS_MAVLINK),
+
+#if MAVLINK_COMM_NUM_BUFFERS > 2
+    // @Group: SR2_
+    // @Path: GCS_Mavlink.pde
+    GOBJECTN(gcs[2],  gcs2,       "SR2_",     GCS_MAVLINK),
+#endif
 
     // @Group: NAVL1_
     // @Path: ../libraries/AP_L1_Control/AP_L1_Control.cpp
     GOBJECT(L1_controller,         "NAVL1_",   AP_L1_Control),
 
-    // @Group: SONAR_
-    // @Path: ../libraries/AP_RangeFinder/AP_RangeFinder_analog.cpp
-    GOBJECT(sonar,                  "SONAR_", AP_RangeFinder_analog),
-
-    // @Group: SONAR2_
-    // @Path: ../libraries/AP_RangeFinder/AP_RangeFinder_analog.cpp
-    GOBJECT(sonar2,                 "SONAR2_", AP_RangeFinder_analog),
+    // @Group: RNGFND
+    // @Path: ../libraries/AP_RangeFinder/RangeFinder.cpp
+    GOBJECT(sonar,                 "RNGFND", RangeFinder),
 
     // @Group: INS_
     // @Path: ../libraries/AP_InertialSensor/AP_InertialSensor.cpp
@@ -464,6 +527,25 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Path: ../libraries/AP_BattMonitor/AP_BattMonitor.cpp
     GOBJECT(battery,                "BATT_",       AP_BattMonitor),
 
+    // @Group: BRD_
+    // @Path: ../libraries/AP_BoardConfig/AP_BoardConfig.cpp
+    GOBJECT(BoardConfig,            "BRD_",       AP_BoardConfig),
+
+    // GPS driver
+    // @Group: GPS_
+    // @Path: ../libraries/AP_GPS/AP_GPS.cpp
+    GOBJECT(gps, "GPS_", AP_GPS),
+
+#if AP_AHRS_NAVEKF_AVAILABLE
+    // @Group: EKF_
+    // @Path: ../libraries/AP_NavEKF/AP_NavEKF.cpp
+    GOBJECTN(ahrs.get_NavEKF(), NavEKF, "EKF_", NavEKF),
+#endif
+
+    // @Group: MIS_
+    // @Path: ../libraries/AP_Mission/AP_Mission.cpp
+    GOBJECT(mission, "MIS_",       AP_Mission),
+
 	AP_VAREND
 };
 
@@ -491,6 +573,11 @@ const AP_Param::ConversionInfo conversion_table[] PROGMEM = {
 
 static void load_parameters(void)
 {
+    if (!AP_Param::check_var_info()) {
+        cliSerial->printf_P(PSTR("Bad var table\n"));        
+        hal.scheduler->panic(PSTR("Bad var table"));
+    }
+
 	if (!g.format_version.load() ||
 	     g.format_version != Parameters::k_format_version) {
 

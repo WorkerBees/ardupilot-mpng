@@ -77,87 +77,20 @@
  #ifndef CAMERA
  # define CAMERA DISABLED
  #endif
+ #ifndef FRSKY_TELEM_ENABLED
+ # define FRSKY_TELEM_ENABLED DISABLED
+ #endif
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
-// main board differences
-//
-#if CONFIG_HAL_BOARD == HAL_BOARD_APM1
- # define CONFIG_INS_TYPE CONFIG_INS_OILPAN
- # define CONFIG_BARO     AP_BARO_BMP085
- # define CONFIG_COMPASS  AP_COMPASS_HMC5843
-#elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
- # define CONFIG_INS_TYPE CONFIG_INS_MPU6000
- # ifdef APM2_BETA_HARDWARE
- #  define CONFIG_BARO     AP_BARO_BMP085
- # else // APM2 Production Hardware (default)
- #  define CONFIG_BARO          AP_BARO_MS5611
- #  define CONFIG_MS5611_SERIAL AP_BARO_MS5611_SPI
- # endif
- # define CONFIG_COMPASS  AP_COMPASS_HMC5843
-#elif CONFIG_HAL_BOARD == HAL_BOARD_MPNG
- #ifndef MPNG_BOARD_TYPE
-  #define MPNG_BOARD_TYPE RCTIMER_CRIUS_V2
- #endif
+// sensor types
 
- #if MPNG_BOARD_TYPE != RCTIMER_CRIUS_V2
- 	#define LOGGING_ENABLED DISABLED
- #endif
+#define CONFIG_INS_TYPE HAL_INS_DEFAULT
+#define CONFIG_BARO     HAL_BARO_DEFAULT
+#define CONFIG_COMPASS  HAL_COMPASS_DEFAULT
 
- # define PIEZO_PIN AN3
-
- #if MPNG_BOARD_TYPE == HK_RED_MULTIWII_PRO || MPNG_BOARD_TYPE == BLACK_VORTEX
-	 # define CONFIG_INS_TYPE   CONFIG_INS_ITG3200
-	 # define CONFIG_BARO       AP_BARO_BMP085_MPNG
- #elif MPNG_BOARD_TYPE == PARIS_V5_OSD
-	 # define CONFIG_INS_TYPE   CONFIG_INS_ITG3200
-	 # define CONFIG_BARO       AP_BARO_MS5611
-	 # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_I2C 
- #else
-	 # define CONFIG_INS_TYPE   CONFIG_INS_MPU6000_I2C
-	 # define CONFIG_BARO       AP_BARO_MS5611
-	 # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_I2C
- #endif
-
- # define BATTERY_VOLT_PIN      0      // Battery voltage on A0
- # define BATTERY_CURR_PIN      1      // Battery current on A1
- # define CONFIG_SONAR_SOURCE SONAR_SOURCE_ANALOG_PIN
- # define CONFIG_COMPASS  AP_COMPASS_HMC5843
-#elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
- # define CONFIG_INS_TYPE CONFIG_INS_HIL
- # define CONFIG_BARO     AP_BARO_HIL
- # define CONFIG_COMPASS  AP_COMPASS_HIL
-#elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
- # define CONFIG_INS_TYPE CONFIG_INS_PX4
- # define CONFIG_BARO AP_BARO_PX4
- # define CONFIG_COMPASS  AP_COMPASS_PX4
- # define SERIAL0_BAUD 115200
-#elif CONFIG_HAL_BOARD == HAL_BOARD_FLYMAPLE
- # define CONFIG_INS_TYPE CONFIG_INS_FLYMAPLE
- # define CONFIG_BARO AP_BARO_BMP085
- # define CONFIG_COMPASS  AP_COMPASS_HMC5843
- # define SERIAL0_BAUD 115200
-#elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
- # define BATTERY_VOLT_PIN      -1
- # define BATTERY_CURR_PIN      -1
- # define CONFIG_INS_TYPE CONFIG_INS_L3G4200D
- # define CONFIG_BARO     AP_BARO_BMP085
- # define CONFIG_COMPASS  AP_COMPASS_HMC5843
-#endif
-
-//////////////////////////////////////////////////////////////////////////////
-// GPS Port speed
-#ifndef SERIAL2_BAUD
-	#define SERIAL2_BAUD 38400
-#endif 
-
-
-#ifndef CONFIG_BARO
- # error "CONFIG_BARO not set"
-#endif
-
-#ifndef CONFIG_COMPASS
- # error "CONFIG_COMPASS not set"
+#ifdef HAL_SERIAL0_BAUD_DEFAULT
+# define SERIAL0_BAUD HAL_SERIAL0_BAUD_DEFAULT
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -168,24 +101,12 @@
 #endif
 
 #if HIL_MODE != HIL_MODE_DISABLED       // we are in HIL mode
- #undef GPS_PROTOCOL
- #define GPS_PROTOCOL GPS_PROTOCOL_HIL
  #undef CONFIG_BARO
- #define CONFIG_BARO AP_BARO_HIL
+ #define CONFIG_BARO HAL_BARO_HIL
  #undef CONFIG_INS_TYPE
- #define CONFIG_INS_TYPE CONFIG_INS_HIL
+ #define CONFIG_INS_TYPE HAL_INS_HIL
  #undef  CONFIG_COMPASS
- #define CONFIG_COMPASS  AP_COMPASS_HIL
-#endif
-
-//////////////////////////////////////////////////////////////////////////////
-// GPS_PROTOCOL
-//
-// Note that this test must follow the HIL_PROTOCOL block as the HIL
-// setup may override the GPS configuration.
-//
-#ifndef GPS_PROTOCOL
- # define GPS_PROTOCOL GPS_PROTOCOL_AUTO
+ #define CONFIG_COMPASS HAL_COMPASS_HIL
 #endif
 
 #ifndef MAV_SYSTEM_ID
@@ -198,8 +119,23 @@
 #ifndef SERIAL0_BAUD
  # define SERIAL0_BAUD                   115200
 #endif
-#ifndef SERIAL3_BAUD
- # define SERIAL3_BAUD                    57600
+#ifndef SERIAL1_BAUD
+ # define SERIAL1_BAUD                    57600
+#endif
+#ifndef SERIAL2_BAUD
+ # define SERIAL2_BAUD                    57600
+#endif
+
+//////////////////////////////////////////////////////////////////////////////
+// FrSky telemetry support
+//
+
+#ifndef FRSKY_TELEM_ENABLED
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_MPNG
+ # define FRSKY_TELEM_ENABLED DISABLED
+#else
+ # define FRSKY_TELEM_ENABLED ENABLED
+#endif
 #endif
 
 
@@ -291,8 +227,6 @@
 // THROTTLE_FS_VALUE
 // SHORT_FAILSAFE_ACTION
 // LONG_FAILSAFE_ACTION
-// GCS_HEARTBEAT_FAILSAFE
-//
 #ifndef THROTTLE_FAILSAFE
  # define THROTTLE_FAILSAFE              ENABLED
 #endif
@@ -305,10 +239,6 @@
 #ifndef LONG_FAILSAFE_ACTION
  # define LONG_FAILSAFE_ACTION           0
 #endif
-#ifndef GCS_HEARTBEAT_FAILSAFE
- # define GCS_HEARTBEAT_FAILSAFE         DISABLED
-#endif
-
 
 //////////////////////////////////////////////////////////////////////////////
 // AUTO_TRIM
@@ -449,7 +379,7 @@
  # define HEAD_MAX                               45
 #endif
 #ifndef PITCH_MAX
- # define PITCH_MAX                              15
+ # define PITCH_MAX                              20
 #endif
 #ifndef PITCH_MIN
  # define PITCH_MIN                              -25
@@ -477,8 +407,8 @@
  # define LOGGING_ENABLED                ENABLED
 #endif
 
-#ifndef DEFAULT_LOG_BITMASK
- # define DEFAULT_LOG_BITMASK     \
+#if CONFIG_HAL_BOARD == HAL_BOARD_APM1 || CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_MPNG
+#define DEFAULT_LOG_BITMASK     \
     MASK_LOG_ATTITUDE_MED | \
     MASK_LOG_GPS | \
     MASK_LOG_PM | \
@@ -489,7 +419,11 @@
     MASK_LOG_COMPASS | \
     MASK_LOG_CURRENT | \
     MASK_LOG_TECS | \
-    MASK_LOG_CAMERA
+    MASK_LOG_CAMERA | \
+    MASK_LOG_RC
+#else
+// other systems have plenty of space for full logs
+#define DEFAULT_LOG_BITMASK   0xffff
 #endif
 
 
@@ -563,28 +497,12 @@
  # define SERIAL_BUFSIZE 512
 #endif
 
+#ifndef SERIAL1_BUFSIZE
+ # define SERIAL1_BUFSIZE 256
+#endif
+
 #ifndef SERIAL2_BUFSIZE
  # define SERIAL2_BUFSIZE 256
-#endif
-
-#ifndef FENCE_ACTION
-# define FENCE_ACTION 0
-#endif
-
-#ifndef FENCE_CHANNEL
-# define FENCE_CHANNEL 0
-#endif
-
-#ifndef FENCE_MINALT
-# define FENCE_MINALT 0
-#endif
-
-#ifndef FENCE_MAXALT
-# define FENCE_MAXALT 0
-#endif
-
-#ifndef RESET_SWITCH_CHANNEL
-# define RESET_SWITCH_CHANNEL 0
 #endif
 
 /*

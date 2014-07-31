@@ -17,45 +17,12 @@
 #define ENABLE ENABLED
 #define DISABLE DISABLED
 
-//////////////////////////////////////////////////////////////////////////////
-// main board differences
-//
-#if CONFIG_HAL_BOARD == HAL_BOARD_APM1
- # define CONFIG_INS_TYPE CONFIG_INS_OILPAN
- # define CONFIG_BARO     AP_BARO_BMP085
- # define CONFIG_COMPASS  AP_COMPASS_HMC5843
-#elif CONFIG_HAL_BOARD == HAL_BOARD_APM2
- # define CONFIG_INS_TYPE CONFIG_INS_MPU6000
- # define CONFIG_BARO          AP_BARO_MS5611
- # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_SPI
- # define CONFIG_COMPASS  AP_COMPASS_HMC5843
-#elif CONFIG_HAL_BOARD == HAL_BOARD_AVR_SITL
- # define CONFIG_INS_TYPE CONFIG_INS_HIL
- # define CONFIG_BARO     AP_BARO_HIL
- # define CONFIG_COMPASS  AP_COMPASS_HIL
-#elif CONFIG_HAL_BOARD == HAL_BOARD_PX4
- # define CONFIG_INS_TYPE CONFIG_INS_PX4
- # define CONFIG_BARO AP_BARO_PX4
- # define CONFIG_COMPASS  AP_COMPASS_PX4
- # define SERIAL0_BAUD 115200
-#elif CONFIG_HAL_BOARD == HAL_BOARD_FLYMAPLE
- # define CONFIG_INS_TYPE CONFIG_INS_FLYMAPLE
- # define CONFIG_BARO AP_BARO_BMP085
- # define CONFIG_COMPASS  AP_COMPASS_HMC5843
- # define SERIAL0_BAUD 115200
-#elif CONFIG_HAL_BOARD == HAL_BOARD_LINUX
- # define CONFIG_INS_TYPE CONFIG_INS_L3G4200D
- # define CONFIG_BARO     AP_BARO_BMP085
- # define CONFIG_COMPASS  AP_COMPASS_HMC5843
-#endif
+#define CONFIG_INS_TYPE HAL_INS_DEFAULT
+#define CONFIG_BARO     HAL_BARO_DEFAULT
+#define CONFIG_COMPASS  HAL_COMPASS_DEFAULT
 
-
-#ifndef CONFIG_BARO
- # error "CONFIG_BARO not set"
-#endif
-
-#ifndef CONFIG_COMPASS
- # error "CONFIG_COMPASS not set"
+#ifdef HAL_SERIAL0_BAUD_DEFAULT
+# define SERIAL0_BAUD HAL_SERIAL0_BAUD_DEFAULT
 #endif
 
 #ifndef MAV_SYSTEM_ID
@@ -69,15 +36,31 @@
 #ifndef SERIAL0_BAUD
  # define SERIAL0_BAUD                   115200
 #endif
-#ifndef SERIAL3_BAUD
- # define SERIAL3_BAUD                    57600
+#ifndef SERIAL1_BAUD
+ # define SERIAL1_BAUD                    57600
 #endif
-
+#ifndef SERIAL2_BAUD
+ # define SERIAL2_BAUD                    57600
+#endif
 
 #ifndef SERIAL_BUFSIZE
  # define SERIAL_BUFSIZE 512
 #endif
 
+#ifndef SERIAL1_BUFSIZE
+ # define SERIAL1_BUFSIZE 256
+#endif
+
 #ifndef SERIAL2_BUFSIZE
  # define SERIAL2_BUFSIZE 256
 #endif
+
+//////////////////////////////////////////////////////////////////////////////
+// Developer Items
+//
+
+// use this to completely disable the CLI
+#ifndef CLI_ENABLED
+ # define CLI_ENABLED ENABLED
+#endif
+

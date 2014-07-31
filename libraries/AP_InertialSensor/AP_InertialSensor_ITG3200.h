@@ -33,14 +33,14 @@ public:
   void           _poll_data(void);
 
   // get_delta_time returns the time period in seconds overwhich the sensor data was collected
-  float					get_delta_time();
+  float					get_delta_time() const;
 
   // Init I2C Bypass mode
   void                  hardware_init_i2c_bypass();
 
 protected:
 	uint16_t 			_init_sensor( Sample_rate sample_rate );
- 	float         _delta_time; 	
+ 	float         _delta_time;
 private:
   static bool read(uint32_t);
 

@@ -53,7 +53,8 @@ SKETCHLIBNAMES		:=	$(notdir $(SKETCHLIBS))
 SKETCHLIBSRCDIRS	:=	$(SKETCHLIBS) $(addsuffix /utility,$(SKETCHLIBS))
 SKETCHLIBSRCS		:=	$(wildcard $(foreach suffix,$(SRCSUFFIXES),$(addsuffix /$(suffix),$(SKETCHLIBSRCDIRS))))
 SKETCHLIBOBJS		:=	$(addsuffix .o,$(basename $(subst $(SKETCHBOOK),$(BUILDROOT),$(SKETCHLIBSRCS))))
-SKETCHLIBINCLUDES	:=	$(addprefix -I,$(SKETCHLIBS))
+SKETCHLIBINCLUDES	:=	$(addprefix -I,$(SRCROOT))
+SKETCHLIBINCLUDES	+=	$(addprefix -I,$(SKETCHLIBS))
 SKETCHLIBSRCSRELATIVE	:=	$(subst $(SKETCHBOOK)/,,$(SKETCHLIBSRCS))
 
 ifeq ($(VERBOSE),)
@@ -63,7 +64,7 @@ v =
 endif
 
 showflags:
-	@echo "HAL_BOARD=$(HAL_BOARD) TOOLCHAIN=$(TOOLCHAIN) EXTRAFLAGS=$(EXTRAFLAGS)"
+	@echo "HAL_BOARD=$(HAL_BOARD) HAL_BOARD_SUBTYPE=$(HAL_BOARD_SUBTYPE) TOOLCHAIN=$(TOOLCHAIN) EXTRAFLAGS=$(EXTRAFLAGS)"
 
 #
 # Build the sketch.cpp file

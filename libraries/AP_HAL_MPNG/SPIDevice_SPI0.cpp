@@ -22,14 +22,14 @@ bool AVRSPI0DeviceDriver::_force_low_speed;
 static volatile bool spi0_transferflag = false;
 
 void AVRSPI0DeviceDriver::init() {
-    hal.gpio->pinMode(SPI0_MISO_PIN, GPIO_INPUT);
-    hal.gpio->pinMode(SPI0_MOSI_PIN, GPIO_OUTPUT);
-    hal.gpio->pinMode(SPI0_SCK_PIN, GPIO_OUTPUT);
+    hal.gpio->pinMode(SPI0_MISO_PIN, HAL_GPIO_INPUT);
+    hal.gpio->pinMode(SPI0_MOSI_PIN, HAL_GPIO_OUTPUT);
+    hal.gpio->pinMode(SPI0_SCK_PIN, HAL_GPIO_OUTPUT);
 
-		// Fixed boot hang, thanks to Chris_kmn    
+		// Fixed boot hang, thanks to Chris_kmn
     hal.gpio->write(SPI0_MISO_PIN, 1);
 
-    _cs_pin->mode(GPIO_OUTPUT);
+    _cs_pin->mode(HAL_GPIO_OUTPUT);
     _cs_pin->write(1);
 
     /* Enable the SPI0 peripheral as a master */
@@ -40,15 +40,15 @@ AP_HAL::Semaphore* AVRSPI0DeviceDriver::get_semaphore() {
     return &_semaphore;
 }
 
-void AVRSPI0DeviceDriver::_cs_assert() 
+void AVRSPI0DeviceDriver::_cs_assert()
 {
-    const uint8_t valid_spcr_mask = 
+    const uint8_t valid_spcr_mask =
         (_BV(CPOL) | _BV(CPHA) | _BV(SPR1) | _BV(SPR0));
     if (_force_low_speed) {
         _spcr = _spcr_lowspeed;
     }
     uint8_t new_spcr = (SPCR & ~valid_spcr_mask) | (_spcr & valid_spcr_mask);
-    SPCR = new_spcr;  
+    SPCR = new_spcr;
 
     const uint8_t valid_spsr_mask = _BV(SPI2X);
     uint8_t new_spsr = (SPSR & ~valid_spsr_mask) | (_spsr & valid_spsr_mask);
@@ -57,12 +57,12 @@ void AVRSPI0DeviceDriver::_cs_assert()
     _cs_pin->write(0);
 }
 
-void AVRSPI0DeviceDriver::_cs_release() 
+void AVRSPI0DeviceDriver::_cs_release()
 {
     _cs_pin->write(1);
 }
 
-uint8_t AVRSPI0DeviceDriver::_transfer(uint8_t data) 
+uint8_t AVRSPI0DeviceDriver::_transfer(uint8_t data)
 {
     if (spi0_transferflag) {
         hal.scheduler->panic(PSTR("PANIC: SPI0 transfer collision"));
@@ -83,7 +83,7 @@ uint8_t AVRSPI0DeviceDriver::_transfer(uint8_t data)
    a specialised transfer function for the MPU6k. This saves 2 usec
    per byte
  */
-void AVRSPI0DeviceDriver::_transfer16(const uint8_t *tx, uint8_t *rx) 
+void AVRSPI0DeviceDriver::_transfer16(const uint8_t *tx, uint8_t *rx)
 {
     spi0_transferflag = true;
 #define TRANSFER1(i) do { SPDR = tx[i];  while(!(SPSR & _BV(SPIF))); rx[i] = SPDR; } while(0)
@@ -148,7 +148,7 @@ uint8_t AVRSPI0DeviceDriver::transfer(uint8_t data) {
 /**
    allow on the fly bus speed changes for MPU6000
  */
-void AVRSPI0DeviceDriver::set_bus_speed(AVRSPI0DeviceDriver::bus_speed speed) 
+void AVRSPI0DeviceDriver::set_bus_speed(AVRSPI0DeviceDriver::bus_speed speed)
 {
     if (speed == AVRSPI0DeviceDriver::SPI_SPEED_HIGH) {
         _spcr = _spcr_highspeed;

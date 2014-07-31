@@ -22,7 +22,7 @@ public:
     float voltage_latest();
     float voltage_average_ratiometric();
     void set_stop_pin(uint8_t p);
-    void set_settle_time(uint16_t settle_time_ms);    
+    void set_settle_time(uint16_t settle_time_ms);
 
     /* implementation specific interface: */
 
@@ -61,15 +61,16 @@ private:
     uint32_t _read_start_time_ms;
 };
 
-/* AVRAnalogIn : a concrete class providing the implementations of the 
+/* AVRAnalogIn : a concrete class providing the implementations of the
  * timer event and the AP_HAL::AnalogIn interface */
 class MPNG::AVRAnalogIn : public AP_HAL::AnalogIn {
 public:
     AVRAnalogIn();
     void init(void* ap_hal_scheduler);
     AP_HAL::AnalogSource* channel(int16_t n);
+    virtual float board_voltage(void);
 
-protected: 
+protected:
     ADCSource* _create_channel(int16_t num);
     void _register_channel(ADCSource*);
     void _timer_event(void);

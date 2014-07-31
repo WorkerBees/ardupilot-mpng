@@ -4,8 +4,7 @@
 Follow instructions at: http://docs.megapirateng.com
 
 
-## Sonar
-Currently sonar is not supported
+[Dev.Ardupilot] (http://dev.ardupilot.com/wiki/building-ardupilot-with-arduino-windows/) 
 
 ## Motor mapping
 Look motor mapping at: http://code.google.com/p/megapirateng/wiki/confighw?wl=en

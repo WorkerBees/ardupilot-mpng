@@ -18,6 +18,10 @@ static void set_control_channels(void)
     channel_pitch->set_angle(SERVO_MAX);
     channel_rudder->set_angle(SERVO_MAX);
     channel_throttle->set_range(0, 100);
+
+    if (!arming.is_armed() && arming.arming_required() == AP_Arming::YES_MIN_PWM) {
+        hal.rcout->set_safety_pwm(1UL<<(rcmap.throttle()-1), channel_throttle->radio_min);
+    }
 }
 
 /*
@@ -41,29 +45,88 @@ static void init_rc_out()
 {
     channel_roll->enable_out();
     channel_pitch->enable_out();
-    channel_throttle->enable_out();
+    if (arming.arming_required() != AP_Arming::YES_ZERO_PWM) {
+        channel_throttle->enable_out();
+    }
     channel_rudder->enable_out();
-    enable_aux_servos();
+    RC_Channel_aux::enable_aux_servos();
 
     // Initialization of servo outputs
-    for (uint8_t i=0; i<8; i++) {
-        RC_Channel::rc_channel(i)->output_trim();
+    RC_Channel::output_trim_all();
+
+    // setup PWM values to send if the FMU firmware dies
+    RC_Channel::setup_failsafe_trim_all();  
+
+    // setup PX4 to output the min throttle when safety off if arming
+    // is setup for min on disarm
+    if (arming.arming_required() == AP_Arming::YES_MIN_PWM) {
+        hal.rcout->set_safety_pwm(1UL<<(rcmap.throttle()-1), channel_throttle->radio_min);
+    }
+}
+
+// check for pilot input on rudder stick for arming
+static void rudder_arm_check() 
+{
+    //TODO: ensure rudder arming disallowed during radio calibration
+
+    //TODO: waggle ailerons and rudder and beep after rudder arming
+    
+    static uint32_t rudder_arm_timer;
+
+    if (arming.is_armed()) {
+        //already armed, no need to run remainder of this function
+        rudder_arm_timer = 0;
+        return;
+    } 
+
+    if (! arming.rudder_arming_enabled()) {
+        //parameter disallows rudder arming
+        return;
     }
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
-    servo_write(CH_9,   g.rc_9.radio_trim);
-#endif
-#if CONFIG_HAL_BOARD == HAL_BOARD_APM2 || CONFIG_HAL_BOARD == HAL_BOARD_PX4
-    servo_write(CH_10,  g.rc_10.radio_trim);
-    servo_write(CH_11,  g.rc_11.radio_trim);
-#endif
-#if CONFIG_HAL_BOARD == HAL_BOARD_PX4
-    servo_write(CH_12,  g.rc_12.radio_trim);
-#endif
+    //if throttle is not down, then pilot cannot rudder arm
+    if (g.rc_3.control_in > 0) {
+        rudder_arm_timer = 0;
+        return;
+    }
+
+    //if not in a 'manual' mode then disallow rudder arming
+    if (auto_throttle_mode ) {
+        rudder_arm_timer = 0;
+        return;      
+    }
+
+    // full right rudder starts arming counter
+    if (g.rc_4.control_in > 4000) {
+        uint32_t now = millis();
+
+        if (rudder_arm_timer == 0 || 
+            now - rudder_arm_timer < 3000) {
+
+            if (rudder_arm_timer == 0) rudder_arm_timer = now;
+        } else {
+            //time to arm!
+            if (arming.arm(AP_Arming::RUDDER)) {
+                channel_throttle->enable_out();                        
+                //only log if arming was successful
+                Log_Arm_Disarm();
+            }                
+        }
+    } else { 
+        // not at full right rudder
+        rudder_arm_timer = 0;
+    }
 }
 
 static void read_radio()
 {
+    if (!hal.rcin->new_input()) {
+        control_failsafe(channel_throttle->radio_in);
+        return;
+    }
+
+    failsafe.last_valid_rc_ms = hal.scheduler->millis();
+
     elevon.ch1_temp = channel_roll->read();
     elevon.ch2_temp = channel_pitch->read();
     uint16_t pwm_roll, pwm_pitch;
@@ -75,6 +138,8 @@ static void read_radio()
         pwm_roll = BOOL_TO_SIGN(g.reverse_elevons) * (BOOL_TO_SIGN(g.reverse_ch2_elevon) * int16_t(elevon.ch2_temp - elevon.trim2) - BOOL_TO_SIGN(g.reverse_ch1_elevon) * int16_t(elevon.ch1_temp - elevon.trim1)) / 2 + 1500;
         pwm_pitch = (BOOL_TO_SIGN(g.reverse_ch2_elevon) * int16_t(elevon.ch2_temp - elevon.trim2) + BOOL_TO_SIGN(g.reverse_ch1_elevon) * int16_t(elevon.ch1_temp - elevon.trim1)) / 2 + 1500;
     }
+
+    RC_Channel::set_pwm_all();
     
     if (control_mode == TRAINING) {
         // in training mode we don't want to use a deadzone, as we
@@ -86,14 +151,7 @@ static void read_radio()
     } else {
         channel_roll->set_pwm(pwm_roll);
         channel_pitch->set_pwm(pwm_pitch);
-        channel_throttle->set_pwm(channel_throttle->read());
-        channel_rudder->set_pwm(channel_rudder->read());
     }
-
-    g.rc_5.set_pwm(hal.rcin->read(CH_5));
-    g.rc_6.set_pwm(hal.rcin->read(CH_6));
-    g.rc_7.set_pwm(hal.rcin->read(CH_7));
-    g.rc_8.set_pwm(hal.rcin->read(CH_8));
 
     control_failsafe(channel_throttle->radio_in);
 
@@ -110,10 +168,28 @@ static void read_radio()
         airspeed_nudge_cm = 0;
         throttle_nudge = 0;
     }
+
+    rudder_arm_check();
 }
 
 static void control_failsafe(uint16_t pwm)
 {
+    if (hal.scheduler->millis() - failsafe.last_valid_rc_ms > 1000 || rc_failsafe_active()) {
+        // we do not have valid RC input. Set all primary channel
+        // control inputs to the trim value and throttle to min
+        channel_roll->radio_in     = channel_roll->radio_trim;
+        channel_pitch->radio_in    = channel_pitch->radio_trim;
+        channel_rudder->radio_in   = channel_rudder->radio_trim;
+
+        // note that we don't set channel_throttle->radio_in to radio_trim,
+        // as that would cause throttle failsafe to not activate
+
+        channel_roll->control_in     = 0;
+        channel_pitch->control_in    = 0;
+        channel_rudder->control_in   = 0;
+        channel_throttle->control_in = 0;
+    }
+
     if(g.throttle_fs_enabled == 0)
         return;
 
@@ -129,7 +205,7 @@ static void control_failsafe(uint16_t pwm)
 
         //Check for failsafe and debounce funky reads
     } else if (g.throttle_fs_enabled) {
-        if (throttle_failsafe_level()) {
+        if (rc_failsafe_active()) {
             // we detect a failsafe from radio
             // throttle has dropped below the mark
             failsafe.ch3_counter++;
@@ -224,11 +300,16 @@ static void trim_radio()
 
 /*
   return true if throttle level is below throttle failsafe threshold
+  or RC input is invalid
  */
-static bool throttle_failsafe_level(void)
+static bool rc_failsafe_active(void)
 {
     if (!g.throttle_fs_enabled) {
         return false;
+    }
+    if (hal.scheduler->millis() - failsafe.last_valid_rc_ms > 1000) {
+        // we haven't had a valid RC frame for 1 seconds
+        return true;
     }
     if (channel_throttle->get_reverse()) {
         return channel_throttle->radio_in >= g.throttle_fs_value;

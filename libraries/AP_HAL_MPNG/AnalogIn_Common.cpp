@@ -20,7 +20,7 @@ AVRAnalogIn::AVRAnalogIn() :
     _vcc(ADCSource(ANALOG_INPUT_BOARD_VCC))
 {}
 
-void AVRAnalogIn::init(void* machtnichts) 
+void AVRAnalogIn::init(void* machtnichts)
 {
     /* Register AVRAnalogIn::_timer_event with the scheduler. */
     hal.scheduler->register_timer_process(AP_HAL_MEMBERPROC(&AVRAnalogIn::_timer_event));
@@ -57,7 +57,7 @@ void AVRAnalogIn::_register_channel(ADCSource* ch) {
     }
 }
 
-void AVRAnalogIn::_timer_event(void) 
+void AVRAnalogIn::_timer_event(void)
 {
     if (_channels[_active_channel]->_pin == ANALOG_INPUT_NONE) {
         _channels[_active_channel]->new_sample(0);
@@ -105,13 +105,21 @@ next_channel:
 }
 
 
-AP_HAL::AnalogSource* AVRAnalogIn::channel(int16_t ch) 
+AP_HAL::AnalogSource* AVRAnalogIn::channel(int16_t ch)
 {
     if (ch == ANALOG_INPUT_BOARD_VCC) {
             return &_vcc;
     } else {
         return _create_channel(ch);
     }
+}
+
+/*
+  return board voltage in volts
+ */
+float AVRAnalogIn::board_voltage(void)
+{
+    return _vcc.voltage_latest();
 }
 
 #endif
