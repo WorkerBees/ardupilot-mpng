@@ -87,7 +87,7 @@ void AP_MotorsTri::output_min()
     hal.rcout->write(_motor_to_channel_map[AP_MOTORS_MOT_1], _rc_throttle->radio_min);
     hal.rcout->write(_motor_to_channel_map[AP_MOTORS_MOT_MPNG], _rc_throttle->radio_min);
     hal.rcout->write(_motor_to_channel_map[AP_MOTORS_MOT_4], _rc_throttle->radio_min);
-    hal.rcout->write(_motor_to_channel_map[AP_MOTORS_CH_TRI_YAW], _rc_yaw->radio_trim);
+    hal.rcout->write(AP_MOTORS_CH_TRI_YAW, _rc_yaw->radio_trim);
 }
 
 // output_armed - sends commands to the motors
@@ -118,7 +118,7 @@ void AP_MotorsTri::output_armed()
             _spin_when_armed_ramped = _min_throttle;
         }
         motor_out[AP_MOTORS_MOT_1] = _rc_throttle->radio_min + _spin_when_armed_ramped;
-        motor_out[AP_MOTORS_MOT_2] = _rc_throttle->radio_min + _spin_when_armed_ramped;
+        motor_out[AP_MOTORS_MOT_MPNG] = _rc_throttle->radio_min + _spin_when_armed_ramped;
         motor_out[AP_MOTORS_MOT_4] = _rc_throttle->radio_min + _spin_when_armed_ramped;
 
         // Every thing is limited
@@ -141,20 +141,20 @@ void AP_MotorsTri::output_armed()
 
         // Tridge's stability patch
         if(motor_out[AP_MOTORS_MOT_1] > out_max) {
-        motor_out[AP_MOTORS_MOT_MPNG] -= (motor_out[AP_MOTORS_MOT_1] - out_max) >> 1;
-            motor_out[AP_MOTORS_MOT_4] -= (motor_out[AP_MOTORS_MOT_1] - out_max) >> 1;
+            motor_out[AP_MOTORS_MOT_MPNG] -= (motor_out[AP_MOTORS_MOT_1] - out_max);
+            motor_out[AP_MOTORS_MOT_4] -= (motor_out[AP_MOTORS_MOT_1] - out_max);
             motor_out[AP_MOTORS_MOT_1] = out_max;
         }
 
     if(motor_out[AP_MOTORS_MOT_MPNG] > out_max) {
-        motor_out[AP_MOTORS_MOT_1] -= (motor_out[AP_MOTORS_MOT_MPNG] - out_max) >> 1;
-        motor_out[AP_MOTORS_MOT_4] -= (motor_out[AP_MOTORS_MOT_MPNG] - out_max) >> 1;
-        motor_out[AP_MOTORS_MOT_MPNG] = out_max;
+            motor_out[AP_MOTORS_MOT_1] -= (motor_out[AP_MOTORS_MOT_MPNG] - out_max);
+            motor_out[AP_MOTORS_MOT_4] -= (motor_out[AP_MOTORS_MOT_MPNG] - out_max);
+            motor_out[AP_MOTORS_MOT_MPNG] = out_max;
         }
 
         if(motor_out[AP_MOTORS_MOT_4] > out_max) {
-            motor_out[AP_MOTORS_MOT_1] -= (motor_out[AP_MOTORS_MOT_4] - out_max) >> 1;
-        motor_out[AP_MOTORS_MOT_MPNG] -= (motor_out[AP_MOTORS_MOT_4] - out_max) >> 1;
+            motor_out[AP_MOTORS_MOT_1] -= (motor_out[AP_MOTORS_MOT_4] - out_max);
+            motor_out[AP_MOTORS_MOT_MPNG] -= (motor_out[AP_MOTORS_MOT_4] - out_max);
             motor_out[AP_MOTORS_MOT_4] = out_max;
         }
 

@@ -36,9 +36,10 @@ private:
     void _cs_release();
     uint8_t _transfer(uint8_t data);
     // used for MPU6k
-    void _transfer15(const uint8_t *tx, uint8_t *rx);
+    void _transfer16(const uint8_t *tx, uint8_t *rx);
 
     static MPNG::AVRSemaphore _semaphore;
+    static bool _force_low_speed;
 
     MPNG::AVRDigitalSource *_cs_pin;
     const uint8_t _spcr_lowspeed;

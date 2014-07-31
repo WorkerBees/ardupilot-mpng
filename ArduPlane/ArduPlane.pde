@@ -1,6 +1,6 @@
 /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 #ifndef THISFIRMWARE
-#  define THISFIRMWARE "ArduPlane V2.76"
+#define THISFIRMWARE "ArduPlane V2.76 MPNG-R2"
 #endif
 /*
    Lead developer: Andrew Tridgell
@@ -192,6 +192,8 @@ static AP_Int8          *flight_modes = &g.flight_mode1;
 
 #if CONFIG_BARO == AP_BARO_BMP085
 static AP_Baro_BMP085 barometer;
+#elif CONFIG_BARO == AP_BARO_BMP085_MPNG
+static AP_Baro_BMP085_MPNG barometer;
 #elif CONFIG_BARO == AP_BARO_PX4
 static AP_Baro_PX4 barometer;
 #elif CONFIG_BARO == AP_BARO_HIL
@@ -901,6 +903,9 @@ static void update_logging(void)
 {
     if ((g.log_bitmask & MASK_LOG_ATTITUDE_MED) && !(g.log_bitmask & MASK_LOG_ATTITUDE_FAST))
         Log_Write_Attitude();
+
+    if ((g.log_bitmask & MASK_LOG_ATTITUDE_MED) && !(g.log_bitmask & MASK_LOG_IMU))
+        Log_Write_IMU();
     
     if (g.log_bitmask & MASK_LOG_CTUN)
         Log_Write_Control_Tuning();
@@ -1314,6 +1319,12 @@ static void update_navigation()
     case LOITER:
     case RTL:
     case GUIDED:
+        // allow loiter direction to be changed in flight
+        if (g.loiter_radius < 0) {
+            loiter.direction = -1;
+        } else {
+            loiter.direction = 1;
+        }
         update_loiter();
         break;
 

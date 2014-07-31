@@ -82,7 +82,7 @@ static void init_ardupilot()
     // standard gps running
     hal.uartB->begin(SERIAL2_BAUD, 256, 16);
 
-    cliSerial->printf_P(PSTR("\n\nInit " THISFIRMWARE
+    cliSerial->printf_P(PSTR("\n\nInit " FIRMWARE_STRING
                             "\n\nFree RAM: %u\nBoard Type: %d\n" ),
                             (unsigned) memcheck_available_memory(), MPNG_BOARD_TYPE); 
 
@@ -97,7 +97,7 @@ static void init_ardupilot()
     while (hal.uartA->tx_pending()) {
        hal.scheduler->delay(1);
     }
-
+    
     // reset the uartA baud rate after parameter load
     hal.uartA->begin(map_baudrate(g.serial0_baud, SERIAL0_BAUD));
 

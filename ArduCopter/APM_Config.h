@@ -6,16 +6,12 @@
 //#define MPNG_BOARD_TYPE   CRIUS_V1
 /*
   RCTIMER_CRIUS_V2    -- (DEFAULT!!!) Use ONLY for RCTimer CRIUS V2 board
-  CRIUS_V1            -- Use this define for RCTimer CRIUS V1(1.1) board and all HobbyKing AIOP boards
-  HK_RED_MULTIWII_PRO -- HobbyKing MultiWii Pro board with ITG3205 and BMA180, BMP085 sensors
+  CRIUS_V1            -- RCTimer CRIUS V1(1.1) board and all HobbyKing AIOP boards
+  HK_RED_MULTIWII_PRO -- HobbyKing MultiWii Pro RED board with ITG3205 and BMA180, BMP085 sensors
   BLACK_VORTEX
   MULTIWII_PRO_EZ3_BLACK  -- ReadyToFlyQuads - MultiWii PRO Ez3.0 Blacked MAG Editon Flight Controller w/ GPS Option (NO COMPASS)
   PARIS_V5_OSD            -- PARIS v5 Mega iOSD - http://www.multiwiicopter.com/products/multiwii-paris-v5-mega-iosd-gps-autopilot
  */
-
-// Currently not supported
-#define CONFIG_SONAR DISABLED
-//#define COPTER_LEDS DISABLED 
 
 // GPS port speed (Serial2) 38400 by default
 //#define SERIAL2_BAUD 38400
@@ -45,6 +41,7 @@
  *  OCTA_FRAME
  *  OCTA_QUAD_FRAME
  *  HELI_FRAME
+ *  SINGLE_FRAME
  */
 
 // uncomment the lines below to save on flash space if compiling for the APM using Arduino IDE.  Top items save the most flash space
@@ -54,11 +51,11 @@
 //#define GPS_PROTOCOL          GPS_PROTOCOL_MTK19  // hard cdoe GPS to Mediatek to save 10k of flash
 //#define MOUNT                 DISABLED            // disable the camera gimbal to save 8K of flash space
 //#define AUTOTUNE              DISABLED            // disable the auto tune functionality to save 7k of flash
-//#define OPTFLOW               DISABLED            // disable optical flow sensor to save 5K of flash space
+#define OPTFLOW               DISABLED            // disable optical flow sensor to save 5K of flash space
 //#define AC_FENCE              DISABLED            // disable fence to save 2k of flash
 //#define CAMERA                DISABLED            // disable camera trigger to save 1k of flash
 //#define COPTER_LEDS           DISABLED            // disable external navigation leds to save 1k of flash
-//#define CONFIG_SONAR          DISABLED            // disable sonar to save 1k of flash
+#define CONFIG_SONAR          DISABLED            // disable sonar to save 1k of flash
 
 // features below are disabled by default
 //#define SPRAYER               ENABLED             // enable the crop sprayer feature (two ESC controlled pumps the speed of which depends upon the vehicle's horizontal velocity)

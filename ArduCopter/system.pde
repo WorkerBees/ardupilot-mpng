@@ -100,10 +100,10 @@ static void init_ardupilot()
 #if GPS_PROTOCOL != GPS_PROTOCOL_IMU
     // standard gps running. Note that we need a 256 byte buffer for some
     // GPS types (eg. UBLOX)
-    hal.uartB->begin(38400, 256, 16);
+    hal.uartB->begin(SERIAL2_BAUD, 256, 16);
 #endif
 
-    cliSerial->printf_P(PSTR("\n\nInit " THISFIRMWARE
+    cliSerial->printf_P(PSTR("\n\nInit " FIRMWARE_STRING
                              "\n\nFree RAM: %u\nBoard Type: %d\n" ),
                         (unsigned) memcheck_available_memory(), MPNG_BOARD_TYPE); 
 
@@ -143,7 +143,7 @@ static void init_ardupilot()
 #endif
 
     // init the GCS
-    gcs0.init(hal.uartA);
+    gcs[0].init(hal.uartA);
 
     // Register the mavlink service callback. This will run
     // anytime there are more than 5ms remaining in a call to
@@ -159,8 +159,14 @@ static void init_ardupilot()
     // we have a 2nd serial port for telemetry on all boards except
     // APM2. We actually do have one on APM2 but it isn't necessary as
     // a MUX is used
-    hal.uartC->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD), 128, 128);
-    gcs3.init(hal.uartC);
+    hal.uartC->begin(map_baudrate(g.serial1_baud, SERIAL1_BAUD), 128, 128);
+    gcs[1].init(hal.uartC);
+#endif
+#if MAVLINK_COMM_NUM_BUFFERS > 2
+    if (hal.uartD != NULL) {
+        hal.uartD->begin(map_baudrate(g.serial2_baud, SERIAL2_BAUD), 128, 128);
+        gcs[2].init(hal.uartD);
+    }
 #endif
 
     // identify ourselves correctly with the ground station
@@ -175,13 +181,8 @@ static void init_ardupilot()
     } else if (DataFlash.NeedErase()) {
         gcs_send_text_P(SEVERITY_LOW, PSTR("ERASING LOGS"));
         do_erase_logs();
-        gcs0.reset_cli_timeout();
+        gcs[0].reset_cli_timeout();
     }
-#endif
-
-#if FRAME_CONFIG == HELI_FRAME
-    motors.servo_manual = false;
-    motors.init_swash();              // heli initialisation
 #endif
 
     init_rc_in();               // sets up rc channels from radio
@@ -228,8 +229,11 @@ static void init_ardupilot()
 #if CLI_ENABLED == ENABLED
     const prog_char_t *msg = PSTR("\nPress ENTER 3 times to start interactive setup\n");
     cliSerial->println_P(msg);
-    if (gcs3.initialised) {
+    if (gcs[1].initialised) {
         hal.uartC->println_P(msg);
+    }
+    if (num_gcs > 2 && gcs[2].initialised) {
+        hal.uartD->println_P(msg);
     }
 #endif // CLI_ENABLED
 
@@ -253,11 +257,6 @@ static void init_ardupilot()
     init_sonar();
 #endif
 
-#if FRAME_CONFIG == HELI_FRAME
-    // initialise controller filters
-    init_rate_controllers();
-#endif // HELI_FRAME
-
     // initialize commands
     // -------------------
     init_commands();
@@ -267,7 +266,12 @@ static void init_ardupilot()
     reset_control_switch();
     init_aux_switches();
 
-    startup_ground(false);
+#if FRAME_CONFIG == HELI_FRAME
+    // trad heli specific initialisation
+    heli_init();
+#endif
+
+    startup_ground(true);
 
 #if LOGGING_ENABLED == ENABLED
     Log_Write_Startup();
@@ -305,7 +309,7 @@ static void startup_ground(bool force_gyro_cal)
 // returns true if the GPS is ok and home position is set
 static bool GPS_ok()
 {
-    if (g_gps != NULL && ap.home_is_set && g_gps->status() == GPS::GPS_OK_FIX_3D) {
+    if (g_gps != NULL && ap.home_is_set && g_gps->status() == GPS::GPS_OK_FIX_3D && !gps_glitch.glitching() && !failsafe.gps) {
         return true;
     }else{
         return false;
@@ -321,6 +325,7 @@ static bool mode_requires_GPS(uint8_t mode) {
         case RTL:
         case CIRCLE:
         case POSITION:
+        case DRIFT:
             return true;
         default:
             return false;
@@ -334,7 +339,7 @@ static bool manual_flight_mode(uint8_t mode) {
     switch(mode) {
         case ACRO:
         case STABILIZE:
-        case TOY:
+        case DRIFT:
         case SPORT:
             return true;
         default:
@@ -345,8 +350,9 @@ static bool manual_flight_mode(uint8_t mode) {
 }
 
 // set_mode - change flight mode and perform any necessary initialisation
+// optional force parameter used to force the flight mode change (used only first time mode is set)
 // returns true if mode was succesfully set
-// STABILIZE, ACRO, SPORT and LAND can always be set successfully but the return state of other flight modes should be checked and the caller should deal with failures appropriately
+// ACRO, STABILIZE, ALTHOLD, LAND, DRIFT and SPORT can always be set successfully but the return state of other flight modes should be checked and the caller should deal with failures appropriately
 static bool set_mode(uint8_t mode)
 {
     // boolean to record if flight mode could be set
@@ -369,9 +375,9 @@ static bool set_mode(uint8_t mode)
 
         case STABILIZE:
             success = true;
-            set_yaw_mode(YAW_HOLD);
-            set_roll_pitch_mode(ROLL_PITCH_STABLE);
-            set_throttle_mode(THROTTLE_MANUAL_TILT_COMPENSATED);
+            set_yaw_mode(STABILIZE_YAW);
+            set_roll_pitch_mode(STABILIZE_RP);
+            set_throttle_mode(STABILIZE_THR);
             set_nav_mode(NAV_NONE);
             break;
 
@@ -454,12 +460,12 @@ static bool set_mode(uint8_t mode)
             }
             break;
 
-        case TOY:
+        case DRIFT:
             success = true;
-            set_yaw_mode(YAW_TOY);
-            set_roll_pitch_mode(ROLL_PITCH_TOY);
+            set_yaw_mode(YAW_DRIFT);
+            set_roll_pitch_mode(ROLL_PITCH_DRIFT);
             set_nav_mode(NAV_NONE);
-            set_throttle_mode(THROTTLE_HOLD);
+            set_throttle_mode(DRIFT_THR);
             break;
 
         case SPORT:
@@ -508,10 +514,18 @@ static void update_auto_armed()
         }
     }else{
         // arm checks
+        
+#if FRAME_CONFIG == HELI_FRAME
+        // for tradheli if motors are armed and throttle is above zero and the motor is started, auto_armed should be true
+        if(motors.armed() && g.rc_3.control_in != 0 && motors.motor_runup_complete()) {
+            set_auto_armed(true);
+        }
+#else
         // if motors are armed and throttle is above zero auto_armed should be true
         if(motors.armed() && g.rc_3.control_in != 0) {
             set_auto_armed(true);
         }
+#endif // HELI_FRAME
     }
 }
 
@@ -531,7 +545,7 @@ static uint32_t map_baudrate(int8_t rate, uint32_t default_baud)
     case 111:  return 111100;
     case 115:  return 115200;
     }
-    //cliSerial->println_P(PSTR("Invalid SERIAL3_BAUD"));
+    //cliSerial->println_P(PSTR("Invalid baudrate"));
     return default_baud;
 }
 
@@ -549,11 +563,11 @@ static void check_usb_mux(void)
     // the APM2 has a MUX setup where the first serial port switches
     // between USB and a TTL serial connection. When on USB we use
     // SERIAL0_BAUD, but when connected as a TTL serial port we run it
-    // at SERIAL3_BAUD.
+    // at SERIAL1_BAUD.
     if (ap.usb_connected) {
         hal.uartA->begin(SERIAL0_BAUD);
     } else {
-        hal.uartA->begin(map_baudrate(g.serial3_baud, SERIAL3_BAUD));
+        hal.uartA->begin(map_baudrate(g.serial1_baud, SERIAL1_BAUD));
     }
 #endif
 }
@@ -606,8 +620,8 @@ print_flight_mode(AP_HAL::BetterStream *port, uint8_t mode)
     case OF_LOITER:
         port->print_P(PSTR("OF_LOITER"));
         break;
-    case TOY:
-        port->print_P(PSTR("TOY"));
+    case DRIFT:
+        port->print_P(PSTR("DRIFT"));
         break;
     case SPORT:
         port->print_P(PSTR("SPORT"));

@@ -10,6 +10,14 @@
 #include <AP_Progmem.h>
 #include "AP_InertialSensor.h"
 
+// MPNG board types
+#define CRIUS_V1  1
+#define RCTIMER_CRIUS_V2 2
+#define HK_RED_MULTIWII_PRO 3
+#define BLACK_VORTEX 4
+#define MULTIWII_PRO_EZ3_BLACK 5
+#define PARIS_V5_OSD 6
+
 class AP_InertialSensor_ITG3200 : public AP_InertialSensor
 {
 public:
@@ -32,7 +40,7 @@ public:
 
 protected:
 	uint16_t 			_init_sensor( Sample_rate sample_rate );
- 	float         _delta_time;
+ 	float         _delta_time; 	
 private:
   static bool read(uint32_t);
 

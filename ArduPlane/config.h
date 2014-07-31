@@ -108,11 +108,11 @@
 
  #if MPNG_BOARD_TYPE == HK_RED_MULTIWII_PRO || MPNG_BOARD_TYPE == BLACK_VORTEX
 	 # define CONFIG_INS_TYPE   CONFIG_INS_ITG3200
-	 # define CONFIG_BARO       AP_BARO_BMP085
+	 # define CONFIG_BARO       AP_BARO_BMP085_MPNG
  #elif MPNG_BOARD_TYPE == PARIS_V5_OSD
 	 # define CONFIG_INS_TYPE   CONFIG_INS_ITG3200
 	 # define CONFIG_BARO       AP_BARO_MS5611
-	 # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_I2C
+	 # define CONFIG_MS5611_SERIAL AP_BARO_MS5611_I2C 
  #else
 	 # define CONFIG_INS_TYPE   CONFIG_INS_MPU6000_I2C
 	 # define CONFIG_BARO       AP_BARO_MS5611
@@ -149,7 +149,7 @@
 // GPS Port speed
 #ifndef SERIAL2_BAUD
 	#define SERIAL2_BAUD 38400
-#endif
+#endif 
 
 
 #ifndef CONFIG_BARO
@@ -587,3 +587,12 @@
 # define RESET_SWITCH_CHANNEL 0
 #endif
 
+/*
+  build a firmware version string.
+  GIT_VERSION comes from Makefile builds
+*/
+#ifndef GIT_VERSION
+#define FIRMWARE_STRING THISFIRMWARE
+#else
+#define FIRMWARE_STRING THISFIRMWARE " (" GIT_VERSION ")"
+#endif
