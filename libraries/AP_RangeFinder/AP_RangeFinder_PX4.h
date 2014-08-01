@@ -13,12 +13,14 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #ifndef AP_RangeFinder_PX4_H
 #define AP_RangeFinder_PX4_H
 
 #include "RangeFinder.h"
 #include "RangeFinder_Backend.h"
+
+#if RANGEFINDER == ENABLED
 
 class AP_RangeFinder_PX4 : public AP_RangeFinder_Backend
 {
@@ -28,7 +30,7 @@ public:
 
     // destructor
     ~AP_RangeFinder_PX4(void);
-    
+
     // static detection function
     static bool detect(RangeFinder &ranger, uint8_t instance);
 
@@ -46,5 +48,7 @@ private:
     // try to open the PX4 driver and return its fd
     static int open_driver(void);
 };
+
+#endif // RANGEFINDER
 
 #endif // AP_RangeFinder_PX4_H

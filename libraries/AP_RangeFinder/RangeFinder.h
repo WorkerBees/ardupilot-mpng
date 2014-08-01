@@ -21,11 +21,13 @@
 #include <AP_HAL.h>
 #include <AP_Param.h>
 
+#if RANGEFINDER == ENABLED
+
 // Maximum number of range finder instances available on this platform
 #define RANGEFINDER_MAX_INSTANCES 2
 
-class AP_RangeFinder_Backend; 
- 
+class AP_RangeFinder_Backend;
+
 class RangeFinder
 {
 public:
@@ -73,7 +75,7 @@ public:
     AP_Int16 _max_distance_cm[RANGEFINDER_MAX_INSTANCES];
 
     static const struct AP_Param::GroupInfo var_info[];
-    
+
     // Return the number of range finder instances
     uint8_t num_sensors(void) const {
         return num_instances;
@@ -85,7 +87,7 @@ public:
     // update state of all rangefinders. Should be called at around
     // 10Hz from main loop
     void update(void);
-    
+
 #define _RangeFinder_STATE(instance) state[instance]
 
     uint16_t distance_cm(uint8_t instance) const {
@@ -115,14 +117,14 @@ public:
     int16_t min_distance_cm() const {
         return min_distance_cm(primary_instance);
     }
-    
+
     bool healthy(uint8_t instance) const {
         return instance < num_instances && _RangeFinder_STATE(instance).healthy;
     }
     bool healthy() const {
         return healthy(primary_instance);
     }
-    
+
 private:
     RangeFinder_State state[RANGEFINDER_MAX_INSTANCES];
     AP_RangeFinder_Backend *drivers[RANGEFINDER_MAX_INSTANCES];
@@ -130,6 +132,9 @@ private:
     uint8_t num_instances:2;
 
     void detect_instance(uint8_t instance);
-    void update_instance(uint8_t instance);  
+    void update_instance(uint8_t instance);
 };
+
+#endif // RANGEFINDER
+
 #endif // __RANGEFINDER_H__

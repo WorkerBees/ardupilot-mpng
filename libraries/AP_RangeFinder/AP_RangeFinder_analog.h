@@ -6,6 +6,8 @@
 #include "RangeFinder.h"
 #include "RangeFinder_Backend.h"
 
+#if RANGEFINDER == ENABLED
+
 class AP_RangeFinder_analog : public AP_RangeFinder_Backend
 {
 public:
@@ -24,5 +26,8 @@ private:
 
     AP_HAL::AnalogSource *source;
 };
+
+#endif // RANGEFINDER
+
 #endif // __AP_RANGEFINDER_ANALOG_H__
 

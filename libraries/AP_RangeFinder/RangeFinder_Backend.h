@@ -21,6 +21,8 @@
 #include <AP_HAL.h>
 #include "RangeFinder.h"
 
+#if RANGEFINDER == ENABLED
+
 class AP_RangeFinder_Backend
 {
 public:
@@ -33,9 +35,12 @@ public:
 
     // update the state structure
     virtual void update() = 0;
-    
+
 protected:
     RangeFinder &ranger;
     RangeFinder::RangeFinder_State &state;
 };
+
+#endif // RANGEFINDER
+
 #endif // __AP_RANGEFINDER_BACKEND_H__

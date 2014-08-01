@@ -6,6 +6,8 @@
 #include "RangeFinder.h"
 #include "RangeFinder_Backend.h"
 
+#if RANGEFINDER == ENABLED
+
 #define AP_RANGE_FINDER_MAXSONARI2CXL_DEFAULT_ADDR   0x70
 
 #define AP_RANGEFINDER_MAXSONARI2CXL                4
@@ -32,4 +34,7 @@ private:
     static bool start_reading(void);
     static bool get_reading(uint16_t &reading_cm);
 };
+
+#endif // RANGEFINDER == ENABLED
+
 #endif  // __AP_RANGEFINDER_MAXSONARI2CXL_H__

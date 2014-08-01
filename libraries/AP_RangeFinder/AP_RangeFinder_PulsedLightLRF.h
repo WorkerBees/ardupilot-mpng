@@ -6,6 +6,8 @@
 #include "RangeFinder.h"
 #include "RangeFinder_Backend.h"
 
+#if RANGEFINDER == ENABLED
+
 /* Connection diagram
  *
  *        ------------------------------------------------------------------------------------
@@ -17,7 +19,7 @@
  *
  * To connect to APM2.x:
  *    APM I2C Clock <-> J1-3
- *    APM I2C Data  <-> J1-2 
+ *    APM I2C Data  <-> J1-2
  *    APM GND (from output Rail) <-> J1-1 J2-5
  *    APM 5V (from output Rail fed by ESC or BEC) <-> J2-2
  *
@@ -57,4 +59,7 @@ private:
     static bool start_reading(void);
     static bool get_reading(uint16_t &reading_cm);
 };
+
+#endif //  RANGEFINDER
+
 #endif  // __AP_RANGEFINDER_PULSEDLIGHTLRF_H__

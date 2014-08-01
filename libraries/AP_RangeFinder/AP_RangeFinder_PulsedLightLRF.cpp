@@ -17,9 +17,12 @@
 #include "AP_RangeFinder_PulsedLightLRF.h"
 #include <AP_HAL.h>
 
+
+#if RANGEFINDER == ENABLED
+
 extern const AP_HAL::HAL& hal;
 
-/* 
+/*
    The constructor also initialises the rangefinder. Note that this
    constructor is not called until detect() returns true, so we
    already know that we should setup the rangefinder
@@ -29,7 +32,7 @@ AP_RangeFinder_PulsedLightLRF::AP_RangeFinder_PulsedLightLRF(RangeFinder &_range
 {
 }
 
-/* 
+/*
    detect if a PulsedLight rangefinder is connected. We'll detect by
    trying to take a reading on I2C. If we get a result the sensor is
    there.
@@ -57,8 +60,8 @@ bool AP_RangeFinder_PulsedLightLRF::start_reading()
     }
 
     // send command to take reading
-    if (hal.i2c->writeRegister(AP_RANGEFINDER_PULSEDLIGHTLRF_ADDR, 
-                               AP_RANGEFINDER_PULSEDLIGHTLRF_MEASURE_REG, 
+    if (hal.i2c->writeRegister(AP_RANGEFINDER_PULSEDLIGHTLRF_ADDR,
+                               AP_RANGEFINDER_PULSEDLIGHTLRF_MEASURE_REG,
                                AP_RANGEFINDER_PULSEDLIGHTLRF_MSRREG_ACQUIRE) != 0) {
         i2c_sem->give();
         return false;
@@ -84,7 +87,7 @@ bool AP_RangeFinder_PulsedLightLRF::get_reading(uint16_t &reading_cm)
     }
 
     // read the high and low byte distance registers
-    if (hal.i2c->readRegisters(AP_RANGEFINDER_PULSEDLIGHTLRF_ADDR, 
+    if (hal.i2c->readRegisters(AP_RANGEFINDER_PULSEDLIGHTLRF_ADDR,
                                AP_RANGEFINDER_PULSEDLIGHTLRF_DISTHIGH_REG, 2, &buff[0]) != 0) {
         i2c_sem->give();
         return false;
@@ -104,10 +107,12 @@ bool AP_RangeFinder_PulsedLightLRF::get_reading(uint16_t &reading_cm)
     return true;
 }
 
-/* 
+/*
    update the state of the sensor
 */
 void AP_RangeFinder_PulsedLightLRF::update(void)
 {
     state.healthy = get_reading(state.distance_cm);
 }
+
+#endif // RANGEFINDER

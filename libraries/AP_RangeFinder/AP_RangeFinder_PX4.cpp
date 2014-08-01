@@ -29,11 +29,14 @@
 #include <stdio.h>
 #include <errno.h>
 
+#if RANGEFINDER == ENABLED
+
+
 extern const AP_HAL::HAL& hal;
 
 uint8_t AP_RangeFinder_PX4::num_px4_instances = 0;
 
-/* 
+/*
    The constructor also initialises the rangefinder. Note that this
    constructor is not called until detect() returns true, so we
    already know that we should setup the rangefinder
@@ -62,7 +65,7 @@ AP_RangeFinder_PX4::AP_RangeFinder_PX4(RangeFinder &_ranger, uint8_t instance, R
     state.healthy = true;
 }
 
-/* 
+/*
    close the file descriptor
 */
 AP_RangeFinder_PX4::~AP_RangeFinder_PX4()
@@ -72,7 +75,7 @@ AP_RangeFinder_PX4::~AP_RangeFinder_PX4()
     }
 }
 
-/* 
+/*
    open the PX4 driver, returning the file descriptor
 */
 int AP_RangeFinder_PX4::open_driver(void)
@@ -87,7 +90,7 @@ int AP_RangeFinder_PX4::open_driver(void)
     return open(path, O_RDONLY);
 }
 
-/* 
+/*
    see if the PX4 driver is available
 */
 bool AP_RangeFinder_PX4::detect(RangeFinder &_ranger, uint8_t instance)
@@ -128,5 +131,7 @@ void AP_RangeFinder_PX4::update(void)
         state.distance_cm = sum / count * 100.0f;
     }
 }
+
+#endif // RANGEFINDER
 
 #endif // CONFIG_HAL_BOARD

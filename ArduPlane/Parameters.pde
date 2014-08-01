@@ -882,9 +882,11 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Path: ../libraries/AP_Relay/AP_Relay.cpp
     GOBJECT(relay,                  "RELAY_", AP_Relay),
 
+#if RANGEFINDER == ENABLED
     // @Group: RNGFND
     // @Path: ../libraries/AP_RangeFinder/RangeFinder.cpp
     GOBJECT(sonar,                  "RNGFND", RangeFinder),
+#endif
 
 #if AP_TERRAIN_AVAILABLE
     // @Group: TERRAIN_

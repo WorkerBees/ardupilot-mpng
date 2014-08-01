@@ -20,6 +20,9 @@
 #include "AP_RangeFinder_MaxsonarI2CXL.h"
 #include "AP_RangeFinder_PX4.h"
 
+#if RANGEFINDER == ENABLED
+
+
 // table of user settable parameters
 const AP_Param::GroupInfo RangeFinder::var_info[] PROGMEM = {
     // @Param: _TYPE
@@ -200,9 +203,9 @@ void RangeFinder::update(void)
         }
     }
 }
-    
+
 /*
-  detect if an instance of a rangefinder is connected. 
+  detect if an instance of a rangefinder is connected.
  */
 void RangeFinder::detect_instance(uint8_t instance)
 {
@@ -212,7 +215,7 @@ void RangeFinder::detect_instance(uint8_t instance)
             drivers[instance] = new AP_RangeFinder_PulsedLightLRF(*this, instance, state[instance]);
             return;
         }
-    } 
+    }
     if (_type[instance] == RangeFinder_TYPE_MBI2C) {
         if (AP_RangeFinder_MaxsonarI2CXL::detect(*this, instance)) {
             state[instance].instance = instance;
@@ -240,3 +243,4 @@ void RangeFinder::detect_instance(uint8_t instance)
     }
 }
 
+#endif
