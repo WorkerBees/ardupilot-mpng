@@ -2,9 +2,11 @@
 
 // Turn some things off
 #define CLI_ENABLED ENABLED
+#define MOUNT DISABLED
 #define MOUNT2 DISABLED
 #define CAMERA DISABLED
-
+#define FRSKY_TELEM_ENABLED DISABLED
+#define RANGEFINDER DISABLED
 
 // Units
 // -----
@@ -445,14 +447,14 @@
 // users to start using the APM without running the WaypointWriter first.
 //
 
-#define HEAD_MAX                30
+#define HEAD_MAX                45
 #define PITCH_MAX               25
 #define PITCH_MIN               -25
 #define PITCH_TARGET            0
 #define THROTTLE_MIN            0 // percent
-#define THROTTLE_CRUISE         60
+#define THROTTLE_CRUISE         45
 #define THROTTLE_MAX            100
-#define THROTTLE_SLEW_LIMIT     75
+#define THROTTLE_SLEW_LIMIT     100
 #define AIRSPEED_FBW_MIN        (15 * MPH_IN_MPS)
 #define AIRSPEED_FBW_MAX        (45 * MPH_IN_MPS)
 #define AIRSPEED_CRUISE         (30 * MPH_IN_MPS)
