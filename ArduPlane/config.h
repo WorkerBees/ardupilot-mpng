@@ -270,6 +270,13 @@
  # define GROUND_START_DELAY             0
 #endif
 
+#ifndef TAKEOFF_THROTTLE_MIN_ACC
+#define TAKEOFF_THROTTLE_MIN_ACC 15
+#endif
+#ifndef TAKEOFF_THROTTLE_DELAY
+#define TAKEOFF_THROTTLE_DELAY 15
+#endif
+
 //////////////////////////////////////////////////////////////////////////////
 // ENABLE ELEVON_MIXING
 //

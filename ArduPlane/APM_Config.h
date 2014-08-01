@@ -465,6 +465,28 @@
 #define USE_CURRENT_ALT         FALSE
 #define ALT_HOLD_HOME           15
 
+
+//////////////////////////////////////////////////////////////////////////////
+// TAKEOFF_THROTTLE_MIN_ACC                 OPTIONAL
+//
+// Minimum forward acceleration in m/s/s before arming the ground speed check in
+// auto-takeoff. This is meant to be used for hand launches. Setting this value to
+// 0 disables the acceleration test which means the ground speed check will always
+// be armed which could allow GPS velocity jumps to start the engine. For hand
+// launches this should be set to 15.
+//
+// TAKEOFF_THROTTLE_DELAY                   OPTIONAL
+//
+// This parameter sets the time delay (in 1/10ths of a second) that the ground
+// speed check is delayed after the forward acceleration check controlled by
+// TKOFF_THR_MINACC has passed. For hand launches with pusher propellers it is
+// essential that this is set to a value of no less than 2 (0.2 seconds) to
+// ensure that the aircraft is safely clear of the throwers arm before the motor
+// can start.
+#define TAKEOFF_THROTTLE_MIN_ACC    10
+#define TAKEOFF_THROTTLE_DELAY      15
+
+
 //////////////////////////////////////////////////////////////////////////////
 // THROTTLE_FAILSAFE                        OPTIONAL
 // THROTTLE_FS_VALUE                        OPTIONAL

@@ -141,7 +141,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Range: 0 30
     // @Increment: 0.1
     // @User: User
-    GSCALAR(takeoff_throttle_min_accel,     "TKOFF_THR_MINACC",  0),
+    GSCALAR(takeoff_throttle_min_accel,     "TKOFF_THR_MINACC",  TAKEOFF_THROTTLE_MIN_ACC),
 
     // @Param: TKOFF_THR_DELAY
     // @DisplayName: Takeoff throttle delay
@@ -150,7 +150,7 @@ const AP_Param::Info var_info[] PROGMEM = {
     // @Range: 0 15
     // @Increment: 1
     // @User: User
-    GSCALAR(takeoff_throttle_delay,     "TKOFF_THR_DELAY",  2),
+    GSCALAR(takeoff_throttle_delay,     "TKOFF_THR_DELAY",  TAKEOFF_THROTTLE_DELAY),
 
     // @Param: TKOFF_TDRAG_ELEV
     // @DisplayName: Takeoff tail dragger elevator
