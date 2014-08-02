@@ -12,9 +12,6 @@ typedef struct {
     char c;
 } prog_char_t;
 
-#undef PROGMEM
-#define PROGMEM __attribute__(( section(".progmem.data") ))
-
 #undef PSTR
 /* need to define prog_char in avr-gcc 4.7 */
 #if __AVR__ && __GNUC__ == 4 && __GNUC_MINOR__ > 6
