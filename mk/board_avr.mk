@@ -134,6 +134,9 @@ SKETCHEEP		=	$(BUILDROOT)/$(SKETCH).eep
 # Map file
 SKETCHMAP		=	$(BUILDROOT)/$(SKETCH).map
 
+# BIN file
+SKETCHBIN		=	$(BUILDROOT)/$(SKETCH).bin
+
 # All of the objects that may be built
 ALLOBJS			=	$(SKETCHOBJS) $(LIBOBJS)
 
@@ -144,7 +147,7 @@ ALLDEPS			=	$(ALLOBJS:%.o=%.d)
 # Targets
 #
 
-all: $(SKETCHELF) $(SKETCHEEP) $(SKETCHHEX)
+all: $(SKETCHELF) $(SKETCHEEP) $(SKETCHHEX) $(SKETCHBIN)
 
 print-%:
 	echo "$*=$($*)"
@@ -174,6 +177,13 @@ jtag-program:
 $(SKETCHELF):	$(SKETCHOBJS) $(LIBOBJS)
 	$(RULEHDR)
 	$(v)$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+# Create the bin file
+$(SKETCHBIN):	$(SKETCHELF)
+	$(RULHDR)
+	$(v)$(OBJCOPY) -O binary -R .eeprom $< $@
+	@stat -c 'Binary size: %s bytes' $@
+	@rm -f $@
 
 # Create the hex file
 $(SKETCHHEX):	$(SKETCHELF)
