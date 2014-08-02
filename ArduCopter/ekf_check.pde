@@ -79,7 +79,7 @@ void ekf_check()
                 Log_Write_Error(ERROR_SUBSYSTEM_EKF_CHECK, ERROR_CODE_EKF_CHECK_BAD_COMPASS);
                 // send message to gcs
                 if ((hal.scheduler->millis() - ekf_check_state.last_warn_time) > EKF_CHECK_WARNING_TIME) {
-                    gcs_send_text_P(SEVERITY_HIGH,PSTR("EKF: compass variance"));
+                    gcs_send_text_P(SEVERITY_HIGH,PSTR("EKF variance"));
                     ekf_check_state.last_warn_time = hal.scheduler->millis();
                 }
                 failsafe_ekf_event();
@@ -114,8 +114,6 @@ void ekf_check()
 // failsafe_ekf_event - perform ekf failsafe
 static void failsafe_ekf_event()
 {
-    uint32_t last_gps_update_ms;
-
     // return immediately if ekf failsafe already triggered or disabled
     if (failsafe.ekf || g.ekfcheck_thresh <= 0.0f) {
         return;
